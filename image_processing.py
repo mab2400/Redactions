@@ -3,7 +3,7 @@ def pdf_to_jpg():
     import os
     from pdf2image import convert_from_path
 
-    pdf_dir = "/Users/carriehaykellar/Downloads/pdfs-2"
+    pdf_dir = "/Users/miabramel/Downloads/pdbs"
     os.chdir(pdf_dir)
     for pdf_file in os.listdir(pdf_dir):
         if pdf_file.endswith(".pdf"):
@@ -80,10 +80,12 @@ def linedetection(pdf_file):
     cv2.waitKey()
 
 def image_processing(pdf_file):
+    import pyautogui
     import cv2
     import imutils
     import numpy as np
     import math
+    import time
 
     img = cv2.imread(pdf_file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -115,7 +117,7 @@ def image_processing(pdf_file):
             cv2.drawContours(thresh, c, 2, (0,255,0), 3)
 
             # smallest size of a redaction
-            if peri > 3000:
+            if peri > 700:
                 # compute the bounding box of the contour
                 approx = cv2.approxPolyDP(c, 0.04*peri, True)
                 (x, y, w, h) = cv2.boundingRect(approx)
@@ -126,7 +128,7 @@ def image_processing(pdf_file):
                     redaction = 1
                     shape = x, x+w, y, y+h
                     potential.append(shape)
-                    cv2.putText(img, "REDACTION", (cX - 20, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 2)
+                    cv2.putText(img, "REDACTION", (cX - 20, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
                 # if the redaction is a perfect rectangle
                 if len(approx) == 4:
@@ -134,7 +136,7 @@ def image_processing(pdf_file):
                     redaction = 1
                     shape = x, x+w, y, y+h
                     potential.append(shape)
-                    cv2.putText(img, "REDACTION", (cX - 20, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 2)
+                    cv2.putText(img, "REDACTION", (cX - 20, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
                 if redaction != 1:
                     redaction = 0
@@ -181,6 +183,11 @@ def image_processing(pdf_file):
         """
 
     cv2.waitKey()
+    # Pressing a key to exit will automatically take a screenshot
+    slash = pdf_file.rindex("/")
+    screenshot_name = pdf_file[slash+1:] + "_screenshot"
+    pyautogui.screenshot(screenshot_name)
+    print("SCREENSHOT TAKEN")
     return ret
 
 def isOverlapping(redactions):
@@ -204,4 +211,5 @@ def isOverlapping(redactions):
     else:
         return ret
 
-image_processing('/Users/miabramel/Downloads/test.jpg')
+# pdf_to_jpg()
+image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958911-page6.jpg')
