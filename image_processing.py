@@ -88,6 +88,7 @@ def image_processing(pdf_file):
     import time
 
     img = cv2.imread(pdf_file)
+    img_original = cv2.imread(pdf_file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # kernel = np.ones((3,3), np.uint8)
     # img_erosion = cv2.erode(gray, kernel, iterations=1)
@@ -105,6 +106,7 @@ def image_processing(pdf_file):
     potential = []
     next_potential = []
     total_area = 0
+    redaction_count = 0
 
     for c in contours:
         M = cv2.moments(c)
@@ -125,24 +127,31 @@ def image_processing(pdf_file):
                 # if the redaction is oddly shaped
                 if w >= 7 and h >= 7:
                     print("Irregularly shaped redaction found.")
+                    redaction_count += 1
                     redaction = 1
                     shape = x, x+w, y, y+h
                     potential.append(shape)
-                    cv2.putText(img, "REDACTION", (cX - 20, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+                    cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
                 # if the redaction is a perfect rectangle
                 if len(approx) == 4:
                     print("Rectangular redaction found.")
                     redaction = 1
+                    redaction_count += 1
                     shape = x, x+w, y, y+h
                     potential.append(shape)
-                    cv2.putText(img, "REDACTION", (cX - 20, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+                    cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
                 if redaction != 1:
                     redaction = 0
 
+    print("Count: ", redaction_count)
     cv2.imshow("Detected Lines (in red) - Probabilistic Line Transform", thresh)
-    cv2.imshow("Image", img)
+
+    if redaction_count < 15:
+        cv2.imshow("Image", img)
+    else:
+        cv2.imshow("Map", img_original)
 
     for shape in potential:
         roi = thresh[shape[2]:shape[3], shape[0]:shape[1]]
@@ -212,4 +221,4 @@ def isOverlapping(redactions):
         return ret
 
 # pdf_to_jpg()
-image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958911-page6.jpg')
+image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958911-page7.jpg')
