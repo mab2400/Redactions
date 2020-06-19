@@ -127,7 +127,7 @@ def image_processing(pdf_file):
                 if w >= 7 and h >= 7 and  x != 0 and y != 0:
                     print("Irregularly shaped redaction found.")
                     shape = x, x+w, y, y+h
-                    potential.append((shape, c))
+                    potential.append(shape)
                     redactions.append(c)
                     cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
@@ -135,28 +135,24 @@ def image_processing(pdf_file):
                 elif len(approx) == 4:
                     print("Rectangular redaction found.")
                     shape = x, x+w, y, y+h
-                    potential.append((shape, c))
+                    potential.append(shape)
                     redactions.append(c)
                     cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
     print("Count: ", len(redactions))
     cv2.imshow("Detected Lines (in red) - Probabilistic Line Transform", thresh)
 
-    for (shape, contour) in potential:
+    for shape in potential:
         roi = thresh[shape[2]:shape[3], shape[0]:shape[1]]
         non_zero = np.count_nonzero(roi)
 
         # Maybe we should change > 0.95. Usually it's 0.3 or less.
         # if (non_zero/roi.size) > 0.95:
-        next_potential.append((shape, contour))
+        next_potential.append(shape)
 
-    # final_redactions contains (shape, contour) objects
     final_redactions = isOverlapping(next_potential)
 
-    for item in final_redactions:
-        # item is (shape, contour)
-        # To extract the contour part (which can be of any size), I set contour to item[1]
-        contour = item[1]
+    for contour in final_redactions:
         M = cv2.moments(contour)
         if M["m00"] != 0:
             cX = int(M["m10"] / M["m00"])
@@ -212,38 +208,52 @@ def image_processing(pdf_file):
 
     return ret
 
-def isOverlapping(next_potential):
+def get_midpoint(shape):
+    # Finds the midpoint of a shape when given (1169, 1648, 2405, 2469) for example.
+    # The midpoints of two shapes will be compared to test whether they are overlapping.
+    x_1 = shape[0]
+    x_2 = shape[1]
+    y_1 = shape[2]
+    y_2 = shape[3]
 
-    # next_potential is of the form [(shape, contour), (shape, contour), ... ]
-    # We want to return a similarly formatted list of only the non-overlapping redactions.
+    midpoint = ((x_1 + x_2)/2, (y_1 + y_2)/2)
+    return midpoint
 
-    redactions = [shape for (shape, contour) in next_potential]
+def get_euclidean_dist(midpoint1, midpoint2):
+    # Calculates the distance between two midpoints of two shapes.
+    midpoint1_x = midpoint1[0]
+    midpoint1_y = midpoint1[1]
+    midpoint2_x = midpoint2[0]
+    midpoint2_y = midpoint2[1]
 
-    print(redactions)
+    dist = math.sqrt(math.pow((midpoint1_x - midpoint2_x),2) + math.pow((midpoint1_y - midpoint2_y),2))
+    return dist
 
-    final_redactions_shape_contour = []
-    if len(redactions) == 0:
-        return redactions
-    else:
-        for i in range(0, len(redactions)-1):
-            for j in range(i+1, len(redactions)):
-                if (redactions[i][0] + 2 >= redactions[j][0] and redactions[j][0] >= redactions[i][0] - 2
-                    and redactions[i][1] + 2 >= redactions[j][1] and redactions[j][1] >= redactions[i][1] - 2
-                    and redactions[i][2] + 2 >= redactions[j][2] and redactions[j][2] >= redactions[i][2] - 2
-                    and redactions[i][2] + 2 >= redactions[j][2] and redactions[j][2] >= redactions[i][2] - 2):
+def mia_isOverlapping(next_potential):
+    # next_potential consists of shapes
 
-                    # Adding the (shape, contour) of the redaction
-                    final_redactions_shape_contour.append(next_potential[i])
-                else:
-                    print("overlapping redaction found")
 
-    # ret contains (shape, contour) items
-    ret = [red for red in redactions if red not in final_redactions_shape_contour]
+def isOverlapping(redactions):
 
-    if len(final_redactions_shape_contour) == 0:
-        return redactions
-    else:
-        return ret
+	final_redactions = []
+	if len(redactions) == 0:
+		return redactions
+	else:
+		for i in range(0, len(redactions)-1):
+			for j in range(i+1, len(redactions)):
+				if (redactions[i][0] + 2 >= redactions[j][0] and redactions[j][0] >= redactions[i][0] - 2
+					and redactions[i][1] + 2 >= redactions[j][1] and redactions[j][1] >= redactions[i][1] - 2
+					and redactions[i][2] + 2 >= redactions[j][2] and redactions[j][2] >= redactions[i][2] - 2
+					and redactions[i][2] + 2 >= redactions[j][2] and redactions[j][2] >= redactions[i][2] - 2):
+					final_redactions.append(redactions[i])
+
+
+	ret = [red for red in redactions if red not in final_redactions]
+
+	if len(final_redactions) == 0:
+		return redactions
+	else:
+		return ret
 
 # pdf_to_jpg()
 image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958912-page4.jpg')
