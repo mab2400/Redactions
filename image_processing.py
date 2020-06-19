@@ -90,11 +90,11 @@ def image_processing(pdf_file):
     img = cv2.imread(pdf_file)
     img_original = cv2.imread(pdf_file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # kernel = np.ones((3,3), np.uint8)
-    # img_erosion = cv2.erode(gray, kernel, iterations=1)
-    # blur = cv2.GaussianBlur(img_erosion,(5,5),0)
-    # thresh = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,3,2)
-    thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    kernel = np.ones((3,3), np.uint8)
+    img_erosion = cv2.erode(gray, kernel, iterations=1)
+    blur = cv2.GaussianBlur(img_erosion,(5,5),0)
+    thresh = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,3,2)
+    # thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
 
     # Find contours and detect shape
     contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -106,17 +106,16 @@ def image_processing(pdf_file):
     potential = []
     next_potential = []
     total_area = 0
-    redaction_count = 0
 
     for c in contours:
+
         M = cv2.moments(c)
         if M["m00"] != 0:
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
-            redaction = 0
             shape = 0
             peri = cv2.arcLength(c, True)
-            cv2.drawContours(thresh, c, 2, (0,255,0), 3)
+            # cv2.drawContours(thresh, c, -1, (0,255,0), 3)
 
             # smallest size of a redaction
             if peri > 700:
@@ -125,42 +124,50 @@ def image_processing(pdf_file):
                 (x, y, w, h) = cv2.boundingRect(approx)
 
                 # if the redaction is oddly shaped
-                if w >= 7 and h >= 7:
+                if w >= 7 and h >= 7 and  x != 0 and y != 0:
                     print("Irregularly shaped redaction found.")
-                    redaction_count += 1
-                    redaction = 1
                     shape = x, x+w, y, y+h
-                    potential.append(shape)
+                    potential.append((shape, c))
+                    redactions.append(c)
                     cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
                 # if the redaction is a perfect rectangle
-                if len(approx) == 4:
+                elif len(approx) == 4:
                     print("Rectangular redaction found.")
-                    redaction = 1
-                    redaction_count += 1
                     shape = x, x+w, y, y+h
-                    potential.append(shape)
+                    potential.append((shape, c))
+                    redactions.append(c)
                     cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
-                if redaction != 1:
-                    redaction = 0
-
-    print("Count: ", redaction_count)
+    print("Count: ", len(redactions))
     cv2.imshow("Detected Lines (in red) - Probabilistic Line Transform", thresh)
 
-    if redaction_count < 15:
-        cv2.imshow("Image", img)
-    else:
-        cv2.imshow("Map", img_original)
-
-    for shape in potential:
+    for (shape, contour) in potential:
         roi = thresh[shape[2]:shape[3], shape[0]:shape[1]]
         non_zero = np.count_nonzero(roi)
 
-        if (non_zero/roi.size) > 0.95:
-            next_potential.append(shape)
+        # Maybe we should change > 0.95. Usually it's 0.3 or less.
+        # if (non_zero/roi.size) > 0.95:
+        next_potential.append((shape, contour))
 
+    # final_redactions contains (shape, contour) objects
     final_redactions = isOverlapping(next_potential)
+
+    for item in final_redactions:
+        # item is (shape, contour)
+        # To extract the contour part (which can be of any size), I set contour to item[1]
+        contour = item[1]
+        M = cv2.moments(contour)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            print("PUTTING REDACTION")
+            cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+
+    if len(final_redactions) < 24:
+        cv2.imshow("Image", img)
+    else:
+        cv2.imshow("Map", img_original)
 
     """
     slash = pdf_file.rindex("/")
@@ -171,6 +178,7 @@ def image_processing(pdf_file):
     """
 
     if len(final_redactions) != 0:
+        print("insdie final_redactions")
         for r in final_redactions:
             """
             area = (r[1]-r[0]) * (r[3]-r[2])
@@ -189,19 +197,31 @@ def image_processing(pdf_file):
     else:
         r_info = [docid, pagenum, 0, 0, 0, 0, 0, 0, 0]
         ret.append(r_info)
-        """
+            """
 
     cv2.waitKey()
+
+    '''
     # Pressing a key to exit will automatically take a screenshot
     slash = pdf_file.rindex("/")
-    screenshot_name = pdf_file[slash+1:] + "_screenshot"
+    period = pdf_file.rindex(".")
+    screenshot_name = pdf_file[slash + 1:period] + "-screenshot" + pdf_file[period:]
     pyautogui.screenshot(screenshot_name)
-    print("SCREENSHOT TAKEN")
+    print("Screenshot saved as ", screenshot_name)
+    '''
+
     return ret
 
-def isOverlapping(redactions):
+def isOverlapping(next_potential):
 
-    final_redactions = []
+    # next_potential is of the form [(shape, contour), (shape, contour), ... ]
+    # We want to return a similarly formatted list of only the non-overlapping redactions.
+
+    redactions = [shape for (shape, contour) in next_potential]
+
+    print(redactions)
+
+    final_redactions_shape_contour = []
     if len(redactions) == 0:
         return redactions
     else:
@@ -211,14 +231,19 @@ def isOverlapping(redactions):
                     and redactions[i][1] + 2 >= redactions[j][1] and redactions[j][1] >= redactions[i][1] - 2
                     and redactions[i][2] + 2 >= redactions[j][2] and redactions[j][2] >= redactions[i][2] - 2
                     and redactions[i][2] + 2 >= redactions[j][2] and redactions[j][2] >= redactions[i][2] - 2):
-                    final_redactions.append(redactions[i])
 
-    ret = [red for red in redactions if red not in final_redactions]
+                    # Adding the (shape, contour) of the redaction
+                    final_redactions_shape_contour.append(next_potential[i])
+                else:
+                    print("overlapping redaction found")
 
-    if len(final_redactions) == 0:
+    # ret contains (shape, contour) items
+    ret = [red for red in redactions if red not in final_redactions_shape_contour]
+
+    if len(final_redactions_shape_contour) == 0:
         return redactions
     else:
         return ret
 
 # pdf_to_jpg()
-image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958911-page7.jpg')
+image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958912-page4.jpg')
