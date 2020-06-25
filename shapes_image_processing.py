@@ -129,21 +129,21 @@ def image_processing(pdf_file):
             # cv2.drawContours(thresh, c, -1, (0,255,0), 3)
 
             # smallest size of a redaction
-            if peri > 700:
+            if peri > 550 and cY > 900:
                 # compute the bounding box of the contour
                 approx = cv2.approxPolyDP(c, 0.04*peri, True)
                 (x, y, w, h) = cv2.boundingRect(approx)
 
                 # if the redaction is oddly shaped
                 if w >= 7 and h >= 7 and  x != 0 and y != 0:
-                    print("Irregularly shaped redaction found.")
+                    # print("Irregularly shaped redaction found.")
                     shape = x, x+w, y, y+h
                     potential.append(shape)
                     # redactions.append(c)
 
                 # if the redaction is a perfect rectangle
                 elif len(approx) == 4:
-                    print("Rectangular redaction found.")
+                    # print("Rectangular redaction found.")
                     shape = x, x+w, y, y+h
                     potential.append(shape)
                     # redactions.append(c)
@@ -172,7 +172,7 @@ def image_processing(pdf_file):
 
     for shape in final_redactions:
         (x, y) = get_midpoint(shape)
-        cv2.circle(img, (int(x), int(y)), radius=0, color=(0, 0, 255), thickness=20)
+        # cv2.circle(img, (int(x), int(y)), radius=0, color=(0, 0, 255), thickness=20)
         cv2.putText(img, "REDACTION", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
     # If there are more than 24 redactions, then I assume it's a map.
@@ -274,7 +274,7 @@ def get_non_overlapping_shapes(next_potential):
              distances.append(midpoint_dist)
 
              # TODO: FIGURE OUT WHAT NUMBER THIS SHOULD ACTUALLY BE
-             if midpoint_dist < 200:
+             if midpoint_dist < 250:
                  # The shapes must be overlapping.
                  # We want only one of the two overlapping shapes to remain in the list.
 
@@ -289,4 +289,4 @@ def get_non_overlapping_shapes(next_potential):
 
     return final_redactions
 
-image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958912-page4.jpg')
+image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958912-page2.jpg')
