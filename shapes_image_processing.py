@@ -102,15 +102,14 @@ def image_processing(pdf_file):
     # ------------------------------------------------------------------------------------------------
 
     # STEPS:
-    # 1) Find the shapes and their contours in the image (next_potential)
-    # 2) Figure out which shapes are overlapping, remove them from the list of
-        # (shape, contours) objects (nonoverlapping_shapes_contours)
+    # 1) Find the shapes in the image (next_potential)
+    # 2) Figure out which shapes are overlapping, remove them from the list of shapes (nonoverlapping_shapes)
     # 3) Put these non-overlapping shapes into a list
-    # 4) Go through the non-overlapping contours and call putText to write on the image
+    # 4) Go through the non-overlapping shapes and call putText to write on the image
 
     # ------------------------------------------------------------------------------------------------
 
-    # 1) Find the shapes and their contours in the image (next_potential)
+    # 1) Find the shapes in the image (next_potential)
 
     # Identifying the Shape
     ret = []
@@ -139,57 +138,42 @@ def image_processing(pdf_file):
                 if w >= 7 and h >= 7 and  x != 0 and y != 0:
                     print("Irregularly shaped redaction found.")
                     shape = x, x+w, y, y+h
-                    potential.append((shape, c))
-                    redactions.append(c)
-                    # cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+                    potential.append(shape)
+                    # redactions.append(c)
 
                 # if the redaction is a perfect rectangle
                 elif len(approx) == 4:
                     print("Rectangular redaction found.")
                     shape = x, x+w, y, y+h
-                    potential.append((shape, c))
-                    redactions.append(c)
-                    # cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+                    potential.append(shape)
+                    # redactions.append(c)
 
-    print("Count: ", len(redactions))
+    print("Count: ", len(potential))
     cv2.imshow("Detected Lines (in red) - Probabilistic Line Transform", thresh)
 
-    for item in potential:
-        # item is of the form (shape, contour)
-        shape = item[0]
-        contour = item[:-1]
-
+    for shape in potential:
         roi = thresh[shape[2]:shape[3], shape[0]:shape[1]]
         non_zero = np.count_nonzero(roi)
 
         # Maybe we should change > 0.95. Usually it's 0.3 or less.
         # if (non_zero/roi.size) > 0.95:
-        next_potential.append((shape, contour))
+        next_potential.append(shape)
 
     # ---------------------------------------------------------------------------------------------
 
-    # 2) Figure out which shapes are overlapping, remove them from the list of
-        # (shape, contours) objects (nonoverlapping_shapes_contours)
+    # 2) Figure out which shapes are overlapping, remove them from the list of shapes to form
+    # a list of non-overlapping shapes called final_redactions.
 
-    # Note: next_potential contains (shape, contour) objects.
-    # final_redactions will also contain (shape, contour) objects, but the NON-OVERLAPPING ONES.
-
-    final_redactions = get_non_overlapping_shapes_contours(next_potential)
+    final_redactions = get_non_overlapping_shapes(next_potential)
 
     # ---------------------------------------------------------------------------------------------
 
-    # Calling putText on each contour so the word "REDACTION" appears on the image.
+    # Calling putText on each shape so the word "REDACTION" appears on the image.
 
-    for item in final_redactions:
-        shape = item[0]
-        contour = item[:-1]
-
-        M = cv2.moments(contour)
-        if M["m00"] != 0:
-            cX = int(M["m10"] / M["m00"])
-            cY = int(M["m01"] / M["m00"])
-            print("PUTTING REDACTION")
-            cv2.putText(img, "REDACTION", (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+    for shape in final_redactions:
+        (x, y) = get_midpoint(shape)
+        cv2.circle(img, (int(x), int(y)), radius=0, color=(0, 0, 255), thickness=20)
+        cv2.putText(img, "REDACTION", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
     # If there are more than 24 redactions, then I assume it's a map.
 
@@ -208,11 +192,9 @@ def image_processing(pdf_file):
 
     if len(final_redactions) != 0:
         print("inside final_redactions")
-        for item in final_redactions:
+        for r in final_redactions:
 
             """
-            # Getting the shape from the (shape, contour) objects in final_redactions
-            item[0] = r
             area = (r[1]-r[0]) * (r[3]-r[2])
             start = (r[0],r[2])
             end = (r[1], r[3])
@@ -271,28 +253,28 @@ def get_euclidean_dist(shape1, shape2):
     dist = math.sqrt(math.pow((midpoint1_x - midpoint2_x),2) + math.pow((midpoint1_y - midpoint2_y),2))
     return dist
 
-def get_non_overlapping_shapes_contours(next_potential):
-    # next_potential consists of (shape, contour) objects
-
-    # next_potential: [(shape1, contour1), (shape2, contour2), (shape3, contour3)]
+def get_non_overlapping_shapes(next_potential):
+    import statistics
+    # next_potential is a list of shapes: [shape1, shape2, shape3]
 
     # I make a copy of next_potential, removing duplicates (aka removing one of the overlapping
-    # redactions) so we are left with a list of non-overlapping (shape, contour) objects.
+    # redactions) so we are left with a list of non-overlapping shapes
 
-    # DO I NEED TO DEEPCOPY THIS??
     final_redactions = list(next_potential)
+    distances = []
 
     for i in range(0, len(next_potential)-1):
          for j in range(i+1, len(next_potential)):
-             # Compare the shapes next_potential[i][0] and next_potential[j][0].
-             shape1 = next_potential[i][0]
-             shape2 = next_potential[j][0]
+             # Compare the shapes next_potential[i] and next_potential[j].
+             shape1 = next_potential[i]
+             shape2 = next_potential[j]
              midpoint_dist = get_euclidean_dist(shape1, shape2)
              # TODO: Change this from print() to simply if the distance is below a certain value
              print("dist btwn midpoints = ", midpoint_dist)
+             distances.append(midpoint_dist)
 
              # TODO: FIGURE OUT WHAT NUMBER THIS SHOULD ACTUALLY BE
-             if midpoint_dist < 400:
+             if midpoint_dist < 200:
                  # The shapes must be overlapping.
                  # We want only one of the two overlapping shapes to remain in the list.
 
@@ -300,6 +282,10 @@ def get_non_overlapping_shapes_contours(next_potential):
                  if (next_potential[i] in final_redactions) and (next_potential[j] in final_redactions):
                      final_redactions.remove(next_potential[i])
                  # Otherwise, don't remove anything because that means there is already only ONE in the list.
+
+    # Calculating statistics on the distances to get a sense of what the threshold should be:
+    # print("smallest distance = ", min(distances))
+
 
     return final_redactions
 
