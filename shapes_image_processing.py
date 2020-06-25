@@ -103,7 +103,7 @@ def image_processing(pdf_file):
 
     # STEPS:
     # 1) Find the shapes in the image (next_potential)
-    # 2) Figure out which shapes are overlapping, remove them from the list of shapes (nonoverlapping_shapes)
+    # 2) Figure out which shapes are overlapping, remove them from the list of shapes (final_redactions)
     # 3) Put these non-overlapping shapes into a list
     # 4) Go through the non-overlapping shapes and call putText to write on the image
 
