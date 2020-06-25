@@ -129,7 +129,7 @@ def image_processing(pdf_file):
             # cv2.drawContours(thresh, c, -1, (0,255,0), 3)
 
             # smallest size of a redaction
-            if peri > 550 and cY > 900:
+            if peri > 550 and cY > 900 and peri < 9000:
                 # compute the bounding box of the contour
                 approx = cv2.approxPolyDP(c, 0.04*peri, True)
                 (x, y, w, h) = cv2.boundingRect(approx)
@@ -171,6 +171,9 @@ def image_processing(pdf_file):
 
     for shape in final_redactions:
         (x, y) = get_midpoint(shape)
+        # top_left_corner = (shape[0], shape[3])
+        # bottom_right_corner = (shape[1], shape[2])
+        # cv2.rectangle(img,top_left_corner, bottom_right_corner,(0,255,0),3)
         # cv2.circle(img, (int(x), int(y)), radius=0, color=(0, 0, 255), thickness=20)
         cv2.putText(img, "REDACTION", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
