@@ -148,7 +148,6 @@ def image_processing(pdf_file):
                     potential.append(shape)
                     # redactions.append(c)
 
-    print("Count: ", len(potential))
     cv2.imshow("Detected Lines (in red) - Probabilistic Line Transform", thresh)
 
     for shape in potential:
@@ -175,6 +174,7 @@ def image_processing(pdf_file):
         # cv2.circle(img, (int(x), int(y)), radius=0, color=(0, 0, 255), thickness=20)
         cv2.putText(img, "REDACTION", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
+    print("Redaction Count: ", len(final_redactions))
     # If there are more than 24 redactions, then I assume it's a map.
 
     if len(final_redactions) < 24:
@@ -191,7 +191,6 @@ def image_processing(pdf_file):
     """
 
     if len(final_redactions) != 0:
-        print("inside final_redactions")
         for r in final_redactions:
 
             """
@@ -215,7 +214,7 @@ def image_processing(pdf_file):
 
     cv2.waitKey()
 
-    # take_screenshot(pdf_file)
+    take_screenshot(pdf_file)
 
     return ret
 
@@ -226,7 +225,7 @@ def take_screenshot(pdf_file):
     period = pdf_file.rindex(".")
     screenshot_name = pdf_file[slash + 1:period] + "-screenshot" + pdf_file[period:]
     pyautogui.screenshot(screenshot_name)
-    print("Screenshot saved as ", screenshot_name)
+    print("Screenshot saved as", screenshot_name)
 
 def get_midpoint(shape):
     # Finds the midpoint of a shape when given (1169, 1648, 2405, 2469) for example.
@@ -270,7 +269,7 @@ def get_non_overlapping_shapes(next_potential):
              shape2 = next_potential[j]
              midpoint_dist = get_euclidean_dist(shape1, shape2)
              # TODO: Change this from print() to simply if the distance is below a certain value
-             print("dist btwn midpoints = ", midpoint_dist)
+             # print("dist btwn midpoints = ", midpoint_dist)
              distances.append(midpoint_dist)
 
              # TODO: FIGURE OUT WHAT NUMBER THIS SHOULD ACTUALLY BE
@@ -285,7 +284,6 @@ def get_non_overlapping_shapes(next_potential):
 
     # Calculating statistics on the distances to get a sense of what the threshold should be:
     # print("smallest distance = ", min(distances))
-
 
     return final_redactions
 
