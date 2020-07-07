@@ -175,7 +175,7 @@ def image_processing(pdf_file):
         # bottom_right_corner = (shape[1], shape[2])
         # cv2.rectangle(img,top_left_corner, bottom_right_corner,(0,255,0),3)
         # cv2.circle(img, (int(x), int(y)), radius=0, color=(0, 0, 255), thickness=20)
-        cv2.putText(img, "REDACTION", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+        cv2.putText(img, "REDACTION", (int(shape[0]), int(shape[3] - 15)), cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
     print("Redaction Count: ", len(final_redactions))
     # If there are more than 24 redactions, then I assume it's a map.
