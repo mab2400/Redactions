@@ -1,4 +1,5 @@
 import os
+import csv
 import cv2
 import time
 import math
@@ -10,9 +11,9 @@ import pandas as pd
 from sqlalchemy import create_engine
 from pdf2image import convert_from_path
 
-def pdf_to_jpg():
+def pdf_to_jpg(pdf_dir):
     """ Converts a multiple-page PDF into multiple single JPEG files """
-    pdf_dir = "/Users/miabramel/Downloads/pdbs"
+    # pdf_dir looks like "/Users/miabramel/Downloads/pdbs"
     os.chdir(pdf_dir)
     for pdf_file in os.listdir(pdf_dir):
         if pdf_file.endswith(".pdf"):
@@ -74,7 +75,7 @@ def linedetection(pdf_file):
     cv2.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP)
     cv2.waitKey()
 
-def putRedactions(redaction_shapes):
+def putRedactions(redaction_shapes, img):
     """ Writes REDACTION on top of the image. """
     for shape in redaction_shapes:
         bottom_left_corner = (int(shape[0]), int(shape[3] - 15))
@@ -82,7 +83,7 @@ def putRedactions(redaction_shapes):
         bottom_right_corner = (int(shape[1]), int(shape[3]))
         cv2.putText(img, "REDACTION", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
-def drawTextRectangles(text_shapes):
+def drawTextRectangles(text_shapes, img):
     """ Draws the bounding rectangles of the detected text on the page. """
     for shape in text_shapes:
         top_left_corner = (int(shape[0]), int(shape[2]))
@@ -173,3 +174,64 @@ def get_non_overlapping_shapes(next_potential):
     # print("smallest distance = ", min(distances))
 
     return final_redactions
+
+def get_redaction_shapes_text_shapes(contours):
+    potential = []
+    text_potential = []
+
+    for c in contours:
+        M = cv2.moments(c)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            shape = 0
+            peri = cv2.arcLength(c, True)
+            # cv2.drawContours(thresh, c, -1, (0,255,0), 3)
+
+            if cY > 900 and cY < 3150:
+
+                # Detecting the redaction
+                if peri > 550 and peri < 9000:
+                    # compute the bounding box of the contour
+                    approx = cv2.approxPolyDP(c, 0.04*peri, True)
+                    (x, y, w, h) = cv2.boundingRect(approx)
+
+                    # if the redaction is oddly shaped
+                    if w >= 7 and h >= 7 and  x != 0 and y != 0:
+                        shape = x, x+w, y, y+h
+                        potential.append(shape)
+                        # redactions.append(c)
+
+                    # if the redaction is a perfect rectangle
+                    elif len(approx) == 4:
+                        shape = x, x+w, y, y+h
+                        potential.append(shape)
+                        # redactions.append(c)
+
+                # Detecting the text
+                if peri > 25 and peri < 150:
+                    approx = cv2.approxPolyDP(c, 0.04*peri, True)
+                    (x, y, w, h) = cv2.boundingRect(approx)
+                    shape = x, x+w, y, y+h
+                    text_potential.append(shape)
+                    # redactions.append(c)
+
+    return (potential, text_potential)
+
+def analyze_results(output_file):
+
+    total_redaction_count = 0
+    total_percent_redacted = 0
+    document_count = 0
+
+    with open(output_file, mode='r') as output:
+        reader = csv.reader(output)
+        for row in reader:
+            document_count += 1
+            total_redaction_count += int(row[0])
+            total_percent_redacted += float(row[1])
+    output.close()
+
+    print("PDB Count: ", document_count)
+    print("Average Redaction Count: ", int(total_redaction_count / document_count))
+    print("Average Percent of Text Redacted: ", total_percent_redacted / document_count)
