@@ -1,8 +1,10 @@
 import redaction_module
+import os
 
 def image_processing(pdf_file):
     import cv2
     import numpy as np
+    import csv
     img = cv2.imread(pdf_file)
     img_original = cv2.imread(pdf_file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -45,46 +47,28 @@ def image_processing(pdf_file):
 
     final_redactions = redaction_module.get_non_overlapping_shapes(next_potential)
 
-    print("Redaction Count: ", len(final_redactions))
-    print("Percent of Text Redacted: ", redaction_module.getPercentRedacted(final_redactions, text_potential))
-
-    """
-    TODO: Will be fixed once we get the map detection figured out!
-
     # If there are more than 24 redactions, then I assume it's a map.
-    if len(final_redactions) < 24:
-        cv2.imshow("Image", img)
-    else:
-        cv2.imshow("Map", img_original)
+    redaction_count = len(final_redactions)
+    if redaction_count < 24 and redaction_count > 0:
+        percent_redacted = redaction_module.getPercentRedacted(final_redactions, text_potential)
+        print()
+        print(jpg_file)
+        print("Redaction Count: ", redaction_count)
+        print("Percent of Text Redacted: ", percent_redacted)
+        with open('/Users/miabramel/Desktop/Redactions/output.csv', mode='a') as output:
+            output_writer = csv.writer(output, delimiter=',')
+            output_writer.writerow([redaction_count, percent_redacted])
+        output.close()
 
-    slash = pdf_file.rindex("/")
-    underscore = pdf_file.rindex("-")
-    period = pdf_file.rindex(".")
-    docid = pdf_file[slash+1:underscore]
-    pagenum = pdf_file[underscore+5:period]
-
-    if len(final_redactions) != 0:
-        for r in final_redactions:
-            area = (r[1]-r[0]) * (r[3]-r[2])
-            start = (r[0],r[2])
-            end = (r[1], r[3])
-            frame = thresh.size
-            margin = (2550-1950)*3301
-            r_perc = round(area/(frame-margin) * 100, 2)
-            aspect_ratio = round((r[1]-r[0])/(r[3]-r[2]), 2)
-            upper_left_x = r[0]
-            upper_left_y = r[2]
-            bottom_left_x = r[1]
-            bottom_left_y = r[3]
-            r_info = [docid, pagenum, area, r_perc, aspect_ratio, upper_left_x, upper_left_y, bottom_left_x, bottom_left_y]
-            ret.append(r_info)
-    else:
-        r_info = [docid, pagenum, 0, 0, 0, 0, 0, 0, 0]
-        ret.append(r_info)
-    """
-
-    # cv2.waitKey()
-    # redaction_module.take_screenshot(pdf_file)
     return ret
 
-image_processing('/Users/miabramel/Downloads/pdbs/DOC_0005958912-page2.jpg')
+def test_batch(directory):
+    # Iterate through all .jpg files in the given directory
+    # redaction_module.pdf_to_jpg(directory)
+    os.chdir(directory)
+    for jpg_file in os.listdir(directory):
+        if jpg_file.endswith(".jpg") and not jpg_file.endswith("screenshot.jpg"):
+            image_processing(jpg_file)
+
+# test_batch("/Users/miabramel/Downloads/pdbs")
+redaction_module.analyze_results("/Users/miabramel/Desktop/Redactions/output.csv")
