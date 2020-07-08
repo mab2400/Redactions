@@ -50,7 +50,6 @@ def image_processing(pdf_file):
 
     redaction_module.putRedactions(final_redactions, img)
     cv2.imshow("Image", img)
-
     """
     TODO: Will be fixed once we get the map detection figured out!
 
