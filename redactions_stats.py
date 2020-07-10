@@ -31,36 +31,27 @@ def image_processing(pdf_file):
     # 1) Find the shapes in the image (next_potential)
 
     # Identifying the Shape
-    ret = []
     redactions = []
     next_potential = []
-    total_area = 0
 
     (potential, text_potential) = redaction_module.get_redaction_shapes_text_shapes(contours)
-
-    for shape in potential:
-        roi = thresh[shape[2]:shape[3], shape[0]:shape[1]]
-        non_zero = np.count_nonzero(roi)
-        # Maybe we should change > 0.95. Usually it's 0.3 or less.
-        # if (non_zero/roi.size) > 0.95:
-        next_potential.append(shape)
-
-    final_redactions = redaction_module.get_non_overlapping_shapes(next_potential)
-
-    # If there are more than 24 redactions, then I assume it's a map.
+    (final_redactions, is_map) = redaction_module.get_intersection_over_union(potential)
+    (percent_redacted, estimated_num_words_redacted) = redaction_module.get_stats(final_redactions, text_potential)
     redaction_count = len(final_redactions)
-    if redaction_count < 24 and redaction_count > 0:
-        percent_redacted = redaction_module.getPercentRedacted(final_redactions, text_potential)
-        print()
-        print(jpg_file)
-        print("Redaction Count: ", redaction_count)
-        print("Percent of Text Redacted: ", percent_redacted)
-        with open('/Users/miabramel/Desktop/Redactions/output.csv', mode='a') as output:
-            output_writer = csv.writer(output, delimiter=',')
-            output_writer.writerow([redaction_count, percent_redacted])
-        output.close()
 
-    return ret
+    print()
+    print(pdf_file)
+    with open('/Users/miabramel/Desktop/Redactions/output.csv', mode='a') as output:
+        output_writer = csv.writer(output, delimiter=',')
+        if not is_map:
+            print("Redaction Count: ", redaction_count)
+            print("Percent of Text Redacted: ", percent_redacted)
+            print("Estimated Number of Words Redacted: ", estimated_num_words_redacted)
+            output_writer.writerow([redaction_count, percent_redacted, estimated_num_words_redacted, 0])
+        else:
+            print("Map")
+            output_writer.writerow([0, 0, 0, 1])
+    output.close()
 
 def test_batch(directory):
     # Iterate through all .jpg files in the given directory
@@ -70,5 +61,6 @@ def test_batch(directory):
         if jpg_file.endswith(".jpg") and not jpg_file.endswith("screenshot.jpg"):
             image_processing(jpg_file)
 
-# test_batch("/Users/miabramel/Downloads/pdbs")
+# redaction_module.pdf_to_jpg("/Users/miabramel/Downloads/pdbs")
+test_batch("/Users/miabramel/Downloads/pdbs")
 redaction_module.analyze_results("/Users/miabramel/Desktop/Redactions/output.csv")
