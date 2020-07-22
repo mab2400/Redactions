@@ -12,8 +12,8 @@ from collections import Counter
 from sqlalchemy import create_engine
 from pdf2image import convert_from_path
 
-def pdf_to_jpg(pdf_dir):
-    """ Converts a multiple-page PDF into multiple single JPEG files """
+def convert_all_pdfs_to_jpgs(pdf_dir):
+    """ Converts ALL multi-page PDFs in the directory into multiple single JPEG files """
     # pdf_dir looks like "/Users/miabramel/Downloads/pdbs"
     os.chdir(pdf_dir)
     for pdf_file in os.listdir(pdf_dir):
@@ -23,58 +23,15 @@ def pdf_to_jpg(pdf_dir):
             for page in pages:
                page.save("%s-page%d.jpg" % (pdf_file,pages.index(page)), "JPEG")
 
-def unpickle():
-    unpickled_df = pd.read_pickle("/Users/carriehaykellar/Downloads/pdfs-2/dummy.pkl")
-    print(unpickled_df)
-    engine = create_engine('mysql://dbuser:dbuserdbuser@127.0.0.1:3306/redactions')
-    unpickled_df.to_sql('redactions_test', con=engine)
-
-def process_files():
-    """ Calls image_processing on each JPEG file """
-    t1 = time.time()
-    df = pd.DataFrame(columns=['docid', 'pagenum', 'area', 'perc', 'aspect_ratio', 'upper_left_x', 'upper_left_y', 'bottom_left_x', 'bottom_left_y'])
-    pdf_dir = "/Users/carriehaykellar/Downloads/pdfs-2"
+def pdf_to_jpg(pdf_dir, pdf_file):
+    """ Converts a multiple-page PDF into multiple single JPEG files """
+    # pdf_dir looks like "/Users/miabramel/Downloads/pdbs"
     os.chdir(pdf_dir)
-    for pdf_file in os.listdir(pdf_dir):
-        if pdf_file.endswith(".jpg"):
-            filePath = pdf_dir +"/" + pdf_file
-            print(filePath)
-            redactions = image_processing(filePath)
-            rdf = pd.DataFrame(data= redactions, columns=['docid', 'pagenum', 'area', 'perc', 'aspect_ratio', 'upper_left_x', 'upper_left_y', 'bottom_left_x', 'bottom_left_y'])
-            df = df.append(rdf, ignore_index = True)
-            df.to_pickle("./dummy.pkl")
-
-    t2 = time.time()
-    print("Run Time: ", round(t2-t1))
-    engine = create_engine('mysql://dbuser:dbuserdbuser@127.0.0.1:3306/redactions')
-    df.to_sql('raw_redactions', con=engine)
-
-def linedetection(pdf_file):
-    src = cv2.imread(pdf_file)
-    kernel = np.ones((3,3), np.uint8)
-    img_erosion = cv2.erode(src, kernel, iterations=1)
-    blur = cv2.GaussianBlur(img_erosion,(5,5),0)
-    cv2.imshow("Erosion", blur)
-
-    dst = cv2.Canny(blur, 50, 200, None, 3)
-    cv2.imshow("cannt", dst)
-
-    # Copy edges to the images that will display the results in BGR
-    cdst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
-    cdstP = np.copy(cdst)
-
-    linesP = cv2.HoughLinesP(dst, 1, np.pi / 180, 50, None, 20, 0)
-
-    if linesP is not None:
-        for i in range(0, len(linesP)):
-            l = linesP[i][0]
-            print(l)
-            cv2.line(cdstP, (l[0], l[1]), (l[2], l[3]), (0,0,255), 3, cv2.LINE_AA)
-
-    # cv2.imshow("Source", src)
-    # cv2.imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst)
-    cv2.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP)
-    cv2.waitKey()
+    full_name = pdf_dir + "/" + pdf_file
+    pages = convert_from_path(full_name, 300)
+    full_name = full_name[:-4]
+    for page in pages:
+        page.save("%s-page%d.jpg" % (full_name, pages.index(page)), "JPEG")
 
 def putRedactions(redaction_shapes, img):
     """ Writes REDACTION on top of the image. """
@@ -91,8 +48,11 @@ def drawTextRectangles(text_shapes, img):
         bottom_right_corner = (int(shape[1]), int(shape[3]))
         cv2.rectangle(img, top_left_corner, bottom_right_corner, (255,0,0), 5)
 
-def get_stats(redaction_shapes, text_shapes):
-    """ Calculates the percent of text redacted, estimated number of words redacted. """
+def get_pdb_stats(redaction_shapes, text_shapes):
+    """ Returns:
+        1) the estimated area of text redacted on the page
+        2) the total text area on the page
+        3) the estimated number of words redacted """
     total_redaction_rectangle_area = 0
     text_area = 0
     # Summing up total redaction area
@@ -110,14 +70,11 @@ def get_stats(redaction_shapes, text_shapes):
     # I calculated that text makes up 26% of the redaction rectangle area (total_redaction_rectangle_area).
     redacted_text_area = .26 * total_redaction_rectangle_area
     estimated_text_area = text_area + redacted_text_area
-    # Now, I want to divide redacted_text_area by the (estimated) area of a single word in order to estimate
+    # Now, I will divide redacted_text_area by the (estimated) area of a single word in order to estimate
     # the number of words redacted.
     estimated_word_area = 4665
     estimated_num_words = int(redacted_text_area / estimated_word_area)
-    if estimated_text_area == 0:
-        return (0, estimated_num_words)
-    else:
-        return ((redacted_text_area / estimated_text_area), estimated_num_words)
+    return [redacted_text_area, estimated_text_area, estimated_num_words]
 
 def take_screenshot(pdf_file):
     # Pressing a key to exit will automatically take a screenshot
@@ -127,34 +84,10 @@ def take_screenshot(pdf_file):
     pyautogui.screenshot(screenshot_name)
     print("Screenshot saved as", screenshot_name)
 
-def get_midpoint(shape):
-    # Finds the midpoint of a shape when given (1169, 1648, 2405, 2469) for example.
-    # The midpoints of two shapes will be compared to test whether they are overlapping.
-    x_1 = shape[0]
-    x_2 = shape[1]
-    y_1 = shape[2]
-    y_2 = shape[3]
-
-    midpoint = ((x_1 + x_2)/2, (y_1 + y_2)/2)
-    return midpoint
-
-def get_euclidean_dist(shape1, shape2):
-    # Calculates the distance between two midpoints of two shapes.
-    midpoint1 = get_midpoint(shape1)
-    midpoint2 = get_midpoint(shape2)
-
-    midpoint1_x = midpoint1[0]
-    midpoint1_y = midpoint1[1]
-    midpoint2_x = midpoint2[0]
-    midpoint2_y = midpoint2[1]
-
-    dist = math.sqrt(math.pow((midpoint1_x - midpoint2_x),2) + math.pow((midpoint1_y - midpoint2_y),2))
-    return dist
-
 def get_intersection_over_union(potential):
     import cv2
-    # Input is a list of shapes, output is (final_redactions, map_area)
-    """ Returns non-overlapping redactions, and if necessary the map area. """
+    """ Returns a list of non-overlapping redaction shapes.
+    Note that if the page contained a map, no redactions will be returned."""
 
     rejects = []
     is_map = False
@@ -181,7 +114,7 @@ def get_intersection_over_union(potential):
     else:
         final_redactions = [x for x in potential if x not in rejects]
 
-    return final_redactions, is_map
+    return final_redactions
 
 def getIOU(boxA, boxB):
     """
@@ -209,40 +142,6 @@ def getIOU(boxA, boxB):
     iou = interArea / float(boxAArea + boxBArea - interArea)
     # return the intersection over union value
     return iou
-
-def get_non_overlapping_shapesOLD(next_potential):
-    # next_potential is a list of shapes: [shape1, shape2, shape3]
-
-    # I make a copy of next_potential, removing duplicates (aka removing one of the overlapping
-    # redactions) so we are left with a list of non-overlapping shapes
-
-    final_redactions = list(next_potential)
-    distances = []
-
-    for i in range(0, len(next_potential)-1):
-         for j in range(i+1, len(next_potential)):
-             # Compare the shapes next_potential[i] and next_potential[j].
-             shape1 = next_potential[i]
-             shape2 = next_potential[j]
-             midpoint_dist = get_euclidean_dist(shape1, shape2)
-             # TODO: Change this from print() to simply if the distance is below a certain value
-             # print("dist btwn midpoints = ", midpoint_dist)
-             distances.append(midpoint_dist)
-
-             # TODO: FIGURE OUT WHAT NUMBER THIS SHOULD ACTUALLY BE
-             if midpoint_dist < 250:
-                 # The shapes must be overlapping.
-                 # We want only one of the two overlapping shapes to remain in the list.
-
-                 # If BOTH overlapping shapes are in final_redactions, let's remove one of them.
-                 if (next_potential[i] in final_redactions) and (next_potential[j] in final_redactions):
-                     final_redactions.remove(next_potential[i])
-                 # Otherwise, don't remove anything because that means there is already only ONE in the list.
-
-    # Calculating statistics on the distances to get a sense of what the threshold should be:
-    # print("smallest distance = ", min(distances))
-
-    return final_redactions
 
 def get_redaction_shapes_text_shapes(contours):
     potential = []
@@ -287,127 +186,102 @@ def get_redaction_shapes_text_shapes(contours):
 
     return (potential, text_potential)
 
-def analyze_results(output_file):
+def analyze_pdb_results(output_file):
     import matplotlib.pyplot as plt
+    from scipy.interpolate import make_interp_spline, BSpline
 
-    map_count = 0
-    total_redaction_count_with_zeros = 0
-    total_percent_redacted_with_zeros = 0
-    total_words_redacted_with_zeros = 0
-    pdb_count_with_zeros = 0
-    total_redaction_count_without_zeros = 0
-    total_percent_redacted_without_zeros = 0
-    total_words_redacted_without_zeros = 0
-    pdb_count_without_zeros = 0
+    pdb_count = 0
+    total_redaction_count = 0
+    total_percent_text_redacted = 0
+    total_num_words_redacted = 0
 
-    redaction_num_to_freq_with_zeros = {i:0 for i in range(100)}
+    # I will assume the max number of redactions in a PDB is 700.
+    redaction_num_to_freq = {i:0 for i in range(700)}
+
     # I know the percents will go from 0 to 100, I make the steps 0.5
     percent_range = [percent*(0.5) for percent in range(200)]
     percent_range.append(100)
-    percent_to_freq_with_zeros = {j:0 for j in percent_range}
-    # I'll assume the max number of words that could be redacted on a single page is 500.
-    num_words_to_freq_with_zeros = {k:0 for k in range(500)}
+    percent_to_freq = {j:0 for j in percent_range}
 
-    redaction_num_to_freq_without_zeros = {i:0 for i in range(100)}
-    percent_to_freq_without_zeros = {j:0 for j in percent_range}
-    # I'll assume the max number of words that could be redacted on a single page is 500.
-    num_words_to_freq_without_zeros = {k:0 for k in range(500)}
+    list_of_redaction_nums = []
+
+    num_words_redacted_x = []
+    num_redactions_y = []
 
     with open(output_file, mode='r') as output:
         reader = csv.reader(output)
         for row in reader:
 
             redaction_num = int(row[0])
+            num_redactions_y.append(redaction_num)
             percent_text_redacted = float(row[1])
             num_words_redacted = int(row[2])
+            num_words_redacted_x.append(num_words_redacted)
+            list_of_redaction_nums.append(num_words_redacted)
 
-            if int(row[3]) == 0:
-                # NOT A MAP
+            redaction_num_to_freq[50 * round(redaction_num / 50)] += 1
+            # rounds the percent to the nearest .5
+            percent_to_freq[round(percent_text_redacted * 200) / 2] += 1
 
-                redaction_num_to_freq_with_zeros[redaction_num] += 1
-                # rounds the percent to the nearest .5
-                percent_to_freq_with_zeros[round(percent_text_redacted * 200) / 2] += 1
-                num_words_to_freq_with_zeros[num_words_redacted] += 1
+            total_redaction_count += redaction_num
+            total_percent_text_redacted += percent_text_redacted
+            total_num_words_redacted += num_words_redacted
 
-                total_redaction_count_with_zeros += redaction_num
-                total_percent_redacted_with_zeros += percent_text_redacted
-                total_words_redacted_with_zeros += num_words_redacted
+            pdb_count += 1
 
-                pdb_count_with_zeros += 1
-
-                if redaction_num > 0 and percent_text_redacted > 0 and num_words_redacted > 0:
-                    redaction_num_to_freq_without_zeros[redaction_num] += 1
-                    # rounds the percent to the nearest .5
-                    percent_to_freq_without_zeros[round(percent_text_redacted * 200) / 2] += 1
-                    num_words_to_freq_without_zeros[num_words_redacted] += 1
-
-                    total_redaction_count_without_zeros += redaction_num
-                    total_percent_redacted_without_zeros += percent_text_redacted
-                    total_words_redacted_without_zeros += num_words_redacted
-
-                    pdb_count_without_zeros += 1
-            else:
-                # Is a Map
-                map_count += 1
-                pdb_count_with_zeros += 1
-                pdb_count_without_zeros += 1
-
+    # Making a list of 1, 2, 3, ... pdb_count
+    num_words_keys = [i for i in range(0, pdb_count+1)]
+    list_of_redaction_nums.sort()
+    # Making a dictionary to be used for a graph
+    num_words_dict = {num1:num2 for (num1, num2) in zip(num_words_keys, list_of_redaction_nums)}
 
     output.close()
 
     print()
-    print("PDB Count with zeros: ", pdb_count_with_zeros)
-    print("Average Redaction Count with zeros: ", int(total_redaction_count_with_zeros / pdb_count_with_zeros))
-    print("Average Percent of Text Redacted with zeros: ", total_percent_redacted_with_zeros / pdb_count_with_zeros)
-    print("Average Number of Words Redacted with zeros: ", int(total_words_redacted_with_zeros / pdb_count_with_zeros))
-    print()
-    print("PDB Count without zeros: ", pdb_count_without_zeros)
-    print("Average Redaction Count without zeros: ", int(total_redaction_count_without_zeros / pdb_count_without_zeros))
-    print("Average Percent of Text Redacted without zeros: ", total_percent_redacted_without_zeros / pdb_count_without_zeros)
-    print("Average Number of Words Redacted without zeros: ", int(total_words_redacted_without_zeros / pdb_count_without_zeros))
-    print("Map Count: ", map_count)
+    print("PDB Count: ", pdb_count)
+    print("Average Redaction Count: ", int(total_redaction_count / pdb_count))
+    print("Average Percent of Text Redacted: ", total_percent_text_redacted / pdb_count)
+    print("Average Number of Words Redacted: ", int(total_num_words_redacted / pdb_count))
 
     # --------- FREQUENCIES OF PERCENT TEXT REDACTED PLOT ----
-    # plot2_x = list(percent_to_freq.keys())
-    # plot2_y = list(percent_to_freq.values())
-    # plt.scatter(plot2_x, plot2_y, color='#FF99AC', linewidth=4)
-    # plt.title("Frequencies of Percent Text Redacted")
-    # plt.xlabel("Percent Text Redacted on One Page")
-    # plt.ylabel("Frequency")
-    # plt.show(block=True)
+    plot2_x = list(percent_to_freq.keys())
+    plot2_y = list(percent_to_freq.values())
+    plt.bar(plot2_x, plot2_y, width=.8, color='#FF99AC')
+    plt.title("Frequencies of Percent Text Redacted (Per PDB)")
+    plt.xlabel("Percent Text Redacted")
+    plt.ylabel("Frequency")
+    plt.show(block=True)
 
-    # ---------- FREQUENCIES OF REDACTIONS PLOT (WITH ZEROS) -------------
-    plot1_x = list(redaction_num_to_freq_with_zeros.keys())
-    plot1_y = list(redaction_num_to_freq_with_zeros.values())
-    plt.plot(plot1_x, plot1_y, color='#FF99AC', linewidth=4)
-    plt.title("Frequencies of Redactions Per Page (with zeros)")
+    # ---------- FREQUENCIES OF REDACTIONS PLOT -------------
+    plot1_x = list(redaction_num_to_freq.keys())
+    plot1_y = list(redaction_num_to_freq.values())
+    plt.bar(plot1_x, plot1_y, width=30, color='#FF99AC')
+    plt.title("Frequencies of Redactions (Per PDB)")
     plt.xlabel("Number of Redactions")
     plt.ylabel("Frequency")
     plt.show(block=True)
 
-    # ---------- FREQUENCIES OF NUMBER OF WORDS REDACTED PLOT (WITH ZEROS) --------------
-    plot2_x = list(num_words_to_freq_with_zeros.keys())
-    plot2_y = list(num_words_to_freq_with_zeros.values())
-    plt.scatter(plot2_x, plot2_y, color='#FF99AC', linewidth=4)
-    plt.title("Frequencies of Number of Words Redacted Per Page (with zeros)")
-    plt.xlabel("Number of Words Redacted")
-    plt.ylabel("Frequency")
+    # ---------- NUMBER OF WORDS REDACTED PLOT --------------
+    plot2_x = list(num_words_dict.keys())
+    plot2_y = list(num_words_dict.values())
+    xnew = np.linspace(min(plot2_x), max(plot2_x), 300)
+    spl = make_interp_spline(plot2_x, plot2_y, k=3)  # type: BSpline
+    power_smooth = spl(xnew)
+    plt.plot(xnew, power_smooth, color='#FF99AC', linewidth=4)
+    plt.title("Number of Words Redacted (Per PDB)")
+    plt.xlabel("PDB #")
+    plt.ylabel("Number of Words Redacted")
     plt.show(block=True)
 
-    # ---------- FREQUENCIES OF REDACTIONS PLOT (WITHOUT ZEROS) --------------
-    plot3_x = list(redaction_num_to_freq_without_zeros.keys())
-    plot3_y = list(redaction_num_to_freq_without_zeros.values())
-    plt.plot(plot3_x, plot3_y, color='#FF99AC', linewidth=4)
-    plt.title("Frequencies of Redactions Per Page (without zeros)")
-    plt.xlabel("Number of Redactions")
-    plt.ylabel("Frequency")
+    # ---------- NUMBER OF REDACTIONS VS. NUMBER OF WORDS REDACTED PLOT --------------
+    plot2_x = num_words_redacted_x
+    plot2_y = num_redactions_y
+    xnew = np.linspace(min(plot2_x), max(plot2_x), 300)
+    spl = make_interp_spline(plot2_x, plot2_y, k=3)  # type: BSpline
+    power_smooth = spl(xnew)
+    plt.plot(xnew, power_smooth, color='#FF99AC', linewidth=4)
+    plt.title("Number of Redactions vs. Number of Words Redacted (Per PDB)")
+    plt.xlabel("Number of Words Redacted")
+    plt.ylabel("Number of Redactions")
     plt.show(block=True)
 
-    # ---------- FREQUENCIES OF NUMBER OF WORDS REDACTED PLOT (WITHOUT ZEROS) --------------
-    plot4_x = list(num_words_to_freq_without_zeros.keys())
-    plot4_y = list(num_words_to_freq_without_zeros.values())
-    plt.scatter(plot4_x, plot4_y, color='#FF99AC', linewidth=4)
-    plt.title("Frequencies of Number of Words Redacted Per Page (without zeros)")
-    plt.xlabel("Number of Words Redacted")
-    plt.ylabel("Frequency")
-    plt.show(block=True)
