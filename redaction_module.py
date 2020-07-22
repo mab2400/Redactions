@@ -285,3 +285,34 @@ def analyze_pdb_results(output_file):
     plt.ylabel("Number of Redactions")
     plt.show(block=True)
 
+def image_processing(jpg_file):
+    """ Returns:
+        1) Redaction Count
+        2) Redacted Text Area
+        3) Estimated Number of Words Redacted
+        for A SINGLE JPG PAGE OF A PDB."""
+
+    import cv2
+    import numpy as np
+    img = cv2.imread(jpg_file)
+    img_original = cv2.imread(jpg_file)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    kernel = np.ones((3,3), np.uint8)
+    img_erosion = cv2.erode(gray, kernel, iterations=1)
+    blur = cv2.GaussianBlur(img_erosion,(5,5),0)
+    thresh = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,3,2)
+
+    # Find contours and detect shape
+    contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    contours = contours[0] if len(contours) == 2 else contours[1]
+
+    # Identifying the Shape
+    redactions = []
+    next_potential = []
+
+    (potential, text_potential) = get_redaction_shapes_text_shapes(contours)
+    final_redactions = get_intersection_over_union(potential)
+    redaction_count = len(final_redactions)
+    [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_pdb_stats(final_redactions, text_potential)
+
+    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted]
