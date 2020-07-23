@@ -4,7 +4,6 @@ A Python-based project that utilizes OpenCV to detect and analyze redactions in 
 
 ![](beforeafter.jpg)
 
-
 # Analyzing Redactions
 
 ## Getting Started
@@ -19,10 +18,19 @@ As the script analyzes each PDB, it will move the files from the "from" director
 
 ## Running the Script
 
+To find the redactions in a __batch__ of PDBs and generate a CSV file containing the data: 
+
 ```bash
-python3 pdb_stats.py
+python3 pdb_stats.py batch
 ```
-You should expect to see a table being generated on the screen. After all of the PDBs have been analyzed, you should also expect graphs to appear in a pop-up window. Note that the raw data will be stored in __pdb_output.csv__ for future use if necessary.
+You should expect to see a table being generated on the screen. Note that the raw data will be stored in __pdb_output.csv__ for future use if necessary.
+
+To generate graphs and __analyze__ the data in the CSV file: 
+
+```bash
+python3 pdb_stats.py analyze
+```
+You should expect graphs to appear in a pop-up window. 
 
 # Analyzing and Displaying a Single Page
 
