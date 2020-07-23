@@ -41,6 +41,13 @@ def putRedactions(redaction_shapes, img):
         bottom_right_corner = (int(shape[1]), int(shape[3]))
         cv2.putText(img, "REDACTION", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
+def drawRedactionRectangles(redaction_shapes, img):
+    """ Draws the bounding rectangles of the detected redactions on the page. """
+    for shape in redaction_shapes:
+        top_left_corner = (int(shape[0]), int(shape[2]))
+        bottom_right_corner = (int(shape[1]), int(shape[3]))
+        cv2.rectangle(img, top_left_corner, bottom_right_corner, (255,0,0), 5)
+
 def drawTextRectangles(text_shapes, img):
     """ Draws the bounding rectangles of the detected text on the page. """
     for shape in text_shapes:
@@ -101,7 +108,6 @@ def get_intersection_over_union(potential):
             # if redactions overlap, append to reject list
             if iou > 0:
                 rejects.append(potential[boxA])
-                rejects.append(potential[boxB])
 
     # If the most common "redaction" is overlapping with 20 others,
     # assume it is a map
@@ -120,12 +126,12 @@ def getIOU(boxA, boxB):
     """
     Determines the score of whether two redactions are overlapping.
     The following code is from
-    https://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-   detection/
+    https://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/
     """
 
     xA = max(boxA[0], boxB[0])
-    yA = max(boxA[1], boxB[1])
-    xB = min(boxA[2], boxB[2])
+    yA = max(boxA[2], boxB[2])
+    xB = min(boxA[1], boxB[1])
     yB = min(boxA[3], boxB[3])
 
     # Compute the area of intersection rectangle
@@ -133,13 +139,17 @@ def getIOU(boxA, boxB):
 
     # Compute the area of both the prediction and ground-truth
     # rectangles
-    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+    boxAArea = (boxA[1] - boxA[0] + 1) * (boxA[3] - boxA[2] + 1)
+    boxBArea = (boxB[1] - boxB[0] + 1) * (boxB[3] - boxB[2] + 1)
 
     # Compute the intersection over union by taking the intersection
     # area and divide it by the sum of prediction + ground-truth
     # areas - the intersection area
-    iou = interArea / float(boxAArea + boxBArea - interArea)
+    denominator = float(boxAArea + boxBArea - interArea)
+    if denominator == 0:
+        iou = 0
+    else:
+        iou = interArea / denominator
     # return the intersection over union value
     return iou
 
@@ -154,9 +164,8 @@ def get_redaction_shapes_text_shapes(contours):
             cY = int(M["m01"] / M["m00"])
             shape = 0
             peri = cv2.arcLength(c, True)
-            # cv2.drawContours(thresh, c, -1, (0,255,0), 3)
 
-            if cY > 900 and cY < 3150:
+            if cY > 15 and cY < 3150:
 
                 # Detecting the redaction
                 if peri > 550 and peri < 9000:
@@ -195,8 +204,8 @@ def analyze_pdb_results(output_file):
     total_percent_text_redacted = 0
     total_num_words_redacted = 0
 
-    # I will assume the max number of redactions in a PDB is 700.
-    redaction_num_to_freq = {i:0 for i in range(700)}
+    # I will assume the max number of redactions in a PDB is 125.
+    redaction_num_to_freq = {i:0 for i in range(125)}
 
     # I know the percents will go from 0 to 100, I make the steps 0.5
     percent_range = [percent*(0.5) for percent in range(200)]
@@ -219,7 +228,7 @@ def analyze_pdb_results(output_file):
             num_words_redacted_x.append(num_words_redacted)
             list_of_redaction_nums.append(num_words_redacted)
 
-            redaction_num_to_freq[50 * round(redaction_num / 50)] += 1
+            redaction_num_to_freq[redaction_num] += 1
             # rounds the percent to the nearest .5
             percent_to_freq[round(percent_text_redacted * 200) / 2] += 1
 
@@ -237,7 +246,7 @@ def analyze_pdb_results(output_file):
 
     output.close()
 
-    print()
+    print("------------------------------------------------------------------------")
     print("PDB Count: ", pdb_count)
     print("Average Redaction Count: ", int(total_redaction_count / pdb_count))
     print("Average Percent of Text Redacted: ", total_percent_text_redacted / pdb_count)
@@ -252,9 +261,11 @@ def analyze_pdb_results(output_file):
     plt.ylabel("Frequency")
     plt.show(block=True)
 
+    """
     # ---------- FREQUENCIES OF REDACTIONS PLOT -------------
     plot1_x = list(redaction_num_to_freq.keys())
     plot1_y = list(redaction_num_to_freq.values())
+    plt.set_xlim(left=0)
     plt.bar(plot1_x, plot1_y, width=30, color='#FF99AC')
     plt.title("Frequencies of Redactions (Per PDB)")
     plt.xlabel("Number of Redactions")
@@ -284,6 +295,7 @@ def analyze_pdb_results(output_file):
     plt.xlabel("Number of Words Redacted")
     plt.ylabel("Number of Redactions")
     plt.show(block=True)
+    """
 
 def image_processing(jpg_file):
     """ Returns:
