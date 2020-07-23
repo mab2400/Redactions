@@ -2,6 +2,8 @@
 
 A Python-based project that utilizes OpenCV to detect redactions in declassified President's Daily Briefs from the mid-20th Century.
 
+![](redactiongif.gif)
+
 # Analyzing Redactions
 
 ## Getting Started
@@ -33,4 +35,5 @@ python3 redactions_show.py jpg_filepath
 - __jpg_filepath__ is the filepath for a single page of a PDB. It must be a .jpg file.
 - Running this script will calculate the number of redactions, the percent of text on the page that was redacted, as well as the estimated number of words that were redacted. It will also open a pop-up window containing an image that clearly identifies the locations of the redactions on the page.
 - Exiting out of the pop-up window will automatically take a screenshot so you can save the analyzed image for future reference.
+
 
