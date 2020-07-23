@@ -20,11 +20,9 @@ def show_individual_page(jpg_file):
     contours = contours[0] if len(contours) == 2 else contours[1]
 
     # Identifying the Shape
-    redactions = []
-    next_potential = []
-
     (potential, text_potential) = redaction_module.get_redaction_shapes_text_shapes(contours)
     final_redactions = redaction_module.get_intersection_over_union(potential)
+    redaction_module.drawRedactionRectangles(final_redactions, img)
     redaction_module.putRedactions(final_redactions, img)
 
     print("Redaction Count: ", redaction_count)
