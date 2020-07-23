@@ -9,8 +9,8 @@ A Python-based project that utilizes OpenCV to detect and analyze redactions in 
 ## Getting Started
 
 1. Prepare two directories:
-- A directory containing _only_ pdf files of PDBs titled __from_pdbs__, which is referred to as the "from" directory
-- An empty directory, the "to" directory, called __to_pdbs__
+- A directory containing _only_ pdf files of PDBs (the "from" directory)
+- An empty directory (the "to" directory)
 
 As the script analyzes each PDB, it will move the files from the "from" directory to the "to" directory. This is a safety measure; if the script gets interrupted at any point, you can pick up where you left off and avoid reanalyzing any PDBs. 
 
@@ -21,7 +21,7 @@ As the script analyzes each PDB, it will move the files from the "from" director
 To find the redactions in a __batch__ of PDBs and generate a CSV file containing the data: 
 
 ```bash
-python3 pdb_stats.py batch
+python3 pdb_stats.py batch from_directory to_directory
 ```
 You should expect to see a table being generated on the screen. Note that the raw data will be stored in __pdb_output.csv__ for future use if necessary.
 
