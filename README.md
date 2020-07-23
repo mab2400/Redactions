@@ -1,6 +1,8 @@
-# Redactions 
+# Redactions Project 
 
 A Python-based project that utilizes OpenCV to detect redactions in declassified President's Daily Briefs from the mid-20th Century.
+
+# Analyzing Redactions
 
 ## Getting Started
 
@@ -18,4 +20,17 @@ As the script analyzes each PDB, it will move the files from the "from" director
 python3 pdb_stats.py
 ```
 You should expect to see a table being generated on the screen. After all of the PDBs have been analyzed, you should also expect graphs to appear in a pop-up window. Note that the raw data will be stored in __pdb_output.csv__ for future use if necessary.
+
+# Analyzing and Displaying a Single Page
+
+Analyzing the redactions on a single page of a PDB file and display an image with the identified redactions.
+
+## Running the Script
+
+```bash
+python3 redactions_show.py jpg_filepath
+```
+- __jpg_filepath__ is the filepath for a single page of a PDB. It must be a .jpg file.
+- Running this script will calculate the number of redactions, the percent of text on the page that was redacted, as well as the estimated number of words that were redacted. It will also open a pop-up window containing an image that clearly identifies the locations of the redactions on the page.
+- Exiting out of the pop-up window will automatically take a screenshot so you can save the analyzed image for future reference.
 
