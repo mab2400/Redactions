@@ -1,6 +1,7 @@
 import redaction_module
 import cv2
 import numpy as np
+import sys
 
 def show_individual_page(jpg_file):
     """ Analyzes the redactions within a single page of a PDB, displays the image with the redactions indicated. """
@@ -38,4 +39,5 @@ def show_individual_page(jpg_file):
     cv2.waitKey()
     redaction_module.take_screenshot(jpg_file)
 
-show_individual_page('/Users/miabramel/Downloads/pdbs/DOC_0005974317-page1.jpg')
+jpg_file = sys.argv[1]
+show_individual_page(jpg_file)
