@@ -1,6 +1,9 @@
 import redaction_module
 import os
+import sys
+import shutil
 import csv
+from tabulate import tabulate
 
 def analyze_pdb(pdb_directory, pdf_file):
     """ Loops through each page within a single PDB and sums up the stats of each page to arrive at the overall total """
@@ -25,27 +28,45 @@ def analyze_pdb(pdb_directory, pdf_file):
             total_estimated_text_area += estimated_text_area
             total_estimated_num_words_redacted += estimated_num_words_redacted
 
+            # Crucial clean-up of jpg files (Note: If files are not removed, code will NOT work properly).
+            os.remove(jpg_file)
+
     # Now that we've gone through each page, we need to calculate the stats for the PDB.
     if total_estimated_text_area != 0:
         total_percent_text_redacted = float(total_redacted_text_area / total_estimated_text_area)
     else:
         total_percent_text_redacted = 0
 
+    data = []
     # open csv file and write the stats in a single row representing the pdb.
-    with open('/Users/miabramel/Desktop/Redactions/pdb_output.csv', mode='a') as output:
+    with open('/Users/miabramel/Desktop/Redactions/pdb_output.csv', mode='a+') as output:
         output_writer = csv.writer(output, delimiter=',')
         row = [total_redaction_count, total_percent_text_redacted, total_estimated_num_words_redacted]
-        print(row)
+        data.append(row)
+        print(tabulate(data, headers=["               ", "                     ", "                 "]))
         output_writer.writerow(row)
     output.close()
 
-def test_batch(pdb_directory):
-    """Iterates through all the PDBS (pdf files) in the given directory"""
-    os.chdir(pdb_directory)
-    for pdf_file in os.listdir(pdb_directory):
+def test_batch(pdb_from_directory, pdb_to_directory):
+    """Iterates through all the PDBS (pdf files) in the given from directory, and moves them to the to directory when they are finished."""
+    # NOTE: Both pdb_from_directory and pdb_to_directory MUST end with a SLASH.
+
+    os.chdir(pdb_from_directory)
+    for pdf_file in os.listdir(pdb_from_directory):
         if pdf_file.endswith(".pdf"):
             # Appends a row to the csv file "pdb_output.csv" with the stats from that particular PDB
-            analyze_pdb(pdb_directory, pdf_file)
+            analyze_pdb(pdb_from_directory, pdf_file)
 
-test_batch("/Users/miabramel/Downloads/newpdbs")
-redaction_module.analyze_pdb_results("/Users/miabramel/Desktop/Redactions/pdb_output.csv")
+            # Moving to the 'to' directory since we're done analyzing it.
+            destination = pdb_to_directory + pdf_file
+            shutil.move(pdb_from_directory + pdf_file, destination)
+
+command = sys.argv[1]
+pdb_from_directory = sys.argv[2]
+pdb_to_directory = sys.argv[3]
+if command == "batch":
+    print("Redaction Count    Percent Text Redacted    Num Words Redacted")
+    test_batch(pdb_from_directory, pdb_to_directory)
+elif command == "analyze":
+    redaction_module.analyze_pdb_results("/Users/miabramel/Desktop/Redactions/pdb_output.csv")
+
