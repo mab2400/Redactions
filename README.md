@@ -2,7 +2,7 @@
 
 A Python-based project that utilizes OpenCV to detect and analyze redactions in declassified President's Daily Briefs from the mid-20th Century.
 
-![](beforeafter.jpg)
+![](images/beforeafter.jpg)
 
 # Analyzing Redactions
 
@@ -30,7 +30,7 @@ python3 pdb_stats.py analyze
 ```
 You should expect graphs to appear in a pop-up window. See below for an example.
 
-![](frequency.png)
+![](images/frequency.png)
 
 # Analyzing and Displaying a Single Page
 
@@ -49,9 +49,9 @@ python3 redactions_show.py jpg_filepath
 
 Our script makes use of OpenCV’s built-in contour and shape detection features to identify the white redaction boxes on each page of a PDB document. 
 
-![](step_1.png)
-![](step_2.png)
-![](step_3.png)
+![](images/step_1.png)
+![](images/step_2.png)
+![](images/step_3.png)
 
 By calculating the area of the redaction in comparison to text on the page, we can estimate the number of words that were redacted as well as what percent of text on the page was redacted.
 
