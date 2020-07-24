@@ -221,10 +221,10 @@ def analyze_pdb_results(output_file):
         reader = csv.reader(output)
         for row in reader:
 
-            redaction_num = int(row[0])
+            redaction_num = int(row[1])
             num_redactions_y.append(redaction_num)
-            percent_text_redacted = float(row[1])
-            num_words_redacted = int(row[2])
+            percent_text_redacted = float(row[2])
+            num_words_redacted = int(row[3])
             num_words_redacted_x.append(num_words_redacted)
             list_of_redaction_nums.append(num_words_redacted)
 

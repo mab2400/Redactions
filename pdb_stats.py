@@ -41,9 +41,9 @@ def analyze_pdb(pdb_directory, pdf_file):
     # open csv file and write the stats in a single row representing the pdb.
     with open('/Users/miabramel/Desktop/Redactions/pdb_output.csv', mode='a+') as output:
         output_writer = csv.writer(output, delimiter=',')
-        row = [total_redaction_count, total_percent_text_redacted, total_estimated_num_words_redacted]
+        row = [pdf_file, total_redaction_count, total_percent_text_redacted, total_estimated_num_words_redacted]
         data.append(row)
-        print(tabulate(data, headers=["               ", "                     ", "                 "]))
+        print(tabulate(data, headers=["                  ", "                 ", "                     ", "                 "]))
         output_writer.writerow(row)
     output.close()
 
@@ -65,7 +65,7 @@ command = sys.argv[1]
 pdb_from_directory = sys.argv[2]
 pdb_to_directory = sys.argv[3]
 if command == "batch":
-    print("Redaction Count    Percent Text Redacted    Num Words Redacted")
+    print("File Name      Redaction Count    Percent Text Redacted    Num Words Redacted")
     test_batch(pdb_from_directory, pdb_to_directory)
 elif command == "analyze":
     redaction_module.analyze_pdb_results("/Users/miabramel/Desktop/Redactions/pdb_output.csv")
