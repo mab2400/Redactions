@@ -65,7 +65,7 @@ command = sys.argv[1]
 pdb_from_directory = sys.argv[2]
 pdb_to_directory = sys.argv[3]
 if command == "batch":
-    print("File Name      Redaction Count    Percent Text Redacted    Num Words Redacted")
+    print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted")
     test_batch(pdb_from_directory, pdb_to_directory)
 elif command == "analyze":
     redaction_module.analyze_pdb_results("/Users/miabramel/Desktop/Redactions/pdb_output.csv")
