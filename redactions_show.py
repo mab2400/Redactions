@@ -18,12 +18,13 @@ def show_individual_page(jpg_file):
     # Find contours and detect shape
     contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     contours = contours[0] if len(contours) == 2 else contours[1]
+    cv2.drawContours(img, contours, -1, (0,255,0), 3)
 
     # Identifying the Shape
     (potential, text_potential) = redaction_module.get_redaction_shapes_text_shapes(contours)
     final_redactions = redaction_module.get_intersection_over_union(potential)
-    redaction_module.drawRedactionRectangles(final_redactions, img)
-    redaction_module.putRedactions(final_redactions, img)
+    # redaction_module.drawRedactionRectangles(final_redactions, img)
+    # redaction_module.putRedactions(final_redactions, img)
 
     print("Redaction Count: ", redaction_count)
     if estimated_text_area != 0:

@@ -204,8 +204,8 @@ def analyze_pdb_results(output_file):
     total_percent_text_redacted = 0
     total_num_words_redacted = 0
 
-    # I will assume the max number of redactions in a PDB is 125.
-    redaction_num_to_freq = {i:0 for i in range(125)}
+    # I will assume the max number of redactions in a PDB is 1000.
+    redaction_num_to_freq = {i:0 for i in range(1000)}
 
     # I know the percents will go from 0 to 100, I make the steps 0.5
     percent_range = [percent*(0.5) for percent in range(200)]

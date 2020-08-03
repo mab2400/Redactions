@@ -4,6 +4,7 @@ import sys
 import shutil
 import csv
 from tabulate import tabulate
+import time
 
 def analyze_pdb(pdb_directory, pdf_file):
     """ Loops through each page within a single PDB and sums up the stats of each page to arrive at the overall total """
@@ -62,9 +63,9 @@ def test_batch(pdb_from_directory, pdb_to_directory):
             shutil.move(pdb_from_directory + pdf_file, destination)
 
 command = sys.argv[1]
-pdb_from_directory = sys.argv[2]
-pdb_to_directory = sys.argv[3]
 if command == "batch":
+    pdb_from_directory = sys.argv[2]
+    pdb_to_directory = sys.argv[3]
     print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted")
     test_batch(pdb_from_directory, pdb_to_directory)
 elif command == "analyze":
