@@ -30,7 +30,7 @@ python3 pdb_stats.py analyze
 ```
 You should expect graphs to appear in a pop-up window. See below for an example.
 
-![](images/frequency.png)
+![](images/fullgraph.png)
 
 # Analyzing and Displaying a Single Page
 
