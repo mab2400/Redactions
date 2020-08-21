@@ -105,13 +105,15 @@ def get_intersection_over_union(potential):
         for boxB in range(boxA+1, len(potential)):
             iou = getIOU(potential[boxA], potential[boxB])
 
+            print(iou)
             # if redactions overlap, append to reject list
-            if iou > 0:
+            if iou > 0.1:
+
                 rejects.append(potential[boxA])
 
     # If the most common "redaction" is overlapping with 20 others,
     # assume it is a map
-    if len(rejects) > 0 and Counter(rejects).most_common(1)[0][1] > 20:
+    if len(rejects) > 0 and Counter(rejects).most_common(1)[0][1] > 4:
         is_map = True
         # map_area.append(Counter(rejects).most_common(1)[0][0])
 
@@ -120,7 +122,7 @@ def get_intersection_over_union(potential):
     else:
         final_redactions = [x for x in potential if x not in rejects]
 
-    return final_redactions
+    return final_redactions, is_map
 
 def getIOU(boxA, boxB):
     """
@@ -153,7 +155,7 @@ def getIOU(boxA, boxB):
     # return the intersection over union value
     return iou
 
-def get_redaction_shapes_text_shapes(contours):
+def get_redaction_shapes_text_shapes(contours, img):
     potential = []
     text_potential = []
 
@@ -168,21 +170,19 @@ def get_redaction_shapes_text_shapes(contours):
             if cY > 15 and cY < 3150:
 
                 # Detecting the redaction
-                if peri > 550 and peri < 9000:
+                if peri > 550 and peri < 100000:
                     # compute the bounding box of the contour
                     approx = cv2.approxPolyDP(c, 0.04*peri, True)
                     (x, y, w, h) = cv2.boundingRect(approx)
-                    non_zero = np.count_nonzero(c)
+                    i = np.array(img)
+                    bounding = i[y:y+h+1, x:x+w+1]
 
-                    # Determine that contour is 96% white space
-                    if (non_zero / c.size) > .96:
+                    non_zero = np.count_nonzero(bounding)
+                    # Determine that contour is 95% white space
+                    if (non_zero / bounding.size) > .95:
                         # Append to potential list if redaction meets criteria
                         # If the redaction is oddly shaped
-                        if w >= 7 and h >= 7 and  x != 0 and y != 0:
-                            shape = x, x+w, y, y+h
-                            potential.append(shape)
-                        # If the redaction is a perfect rectangle
-                        elif len(approx) == 4:
+                        if w >= 10 and h >= 10 and  x != 0 and y != 0:
                             shape = x, x+w, y, y+h
                             potential.append(shape)
 
@@ -322,9 +322,9 @@ def image_processing(jpg_file):
     redactions = []
     next_potential = []
 
-    (potential, text_potential) = get_redaction_shapes_text_shapes(contours)
-    final_redactions = get_intersection_over_union(potential)
+    (potential, text_potential) = get_redaction_shapes_text_shapes(contours, thresh)
+    final_redactions, is_map = get_intersection_over_union(potential)
     redaction_count = len(final_redactions)
     [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_pdb_stats(final_redactions, text_potential)
 
-    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted]
+    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map]

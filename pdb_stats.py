@@ -22,7 +22,7 @@ def analyze_pdb(pdb_directory, pdf_file):
         # Iterating through each page of the PDB
         if jpg_file.endswith(".jpg"):
 
-            [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted] = redaction_module.image_processing(jpg_file)
+            [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map] = redaction_module.image_processing(jpg_file)
 
             total_redaction_count += redaction_count
             total_redacted_text_area += redacted_text_area
@@ -40,11 +40,11 @@ def analyze_pdb(pdb_directory, pdf_file):
 
     data = []
     # open csv file and write the stats in a single row representing the pdb.
-    with open('/Users/miabramel/Desktop/Redactions/pdb_output.csv', mode='a+') as output:
+    with open('/Users/carriehaykellar/History_Lab/Redaction Project/Redactions-master/pdb_output.csv', mode='a+') as output:
         output_writer = csv.writer(output, delimiter=',')
-        row = [pdf_file, total_redaction_count, total_percent_text_redacted, total_estimated_num_words_redacted]
+        row = [pdf_file, total_redaction_count, total_percent_text_redacted, total_estimated_num_words_redacted, is_map]
         data.append(row)
-        print(tabulate(data, headers=["                  ", "                 ", "                     ", "                 "]))
+        print(tabulate(data, headers=["                  ", "                 ", "                     ", "                 ", "             "]))
         output_writer.writerow(row)
     output.close()
 
@@ -66,8 +66,8 @@ command = sys.argv[1]
 if command == "batch":
     pdb_from_directory = sys.argv[2]
     pdb_to_directory = sys.argv[3]
-    print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted")
+    print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted    Map Present")
     test_batch(pdb_from_directory, pdb_to_directory)
 elif command == "analyze":
-    redaction_module.analyze_pdb_results("/Users/miabramel/Desktop/Redactions/pdb_output.csv")
+    redaction_module.analyze_pdb_results("/Users/carriehaykellar/History_Lab/Redaction Project/Redactions-master/pdb_output.csv")
 
