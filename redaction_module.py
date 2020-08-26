@@ -261,42 +261,6 @@ def analyze_pdb_results(output_file):
     plt.ylabel("Frequency")
     plt.show(block=True)
 
-    """
-    # ---------- FREQUENCIES OF REDACTIONS PLOT -------------
-    plot1_x = list(redaction_num_to_freq.keys())
-    plot1_y = list(redaction_num_to_freq.values())
-    plt.set_xlim(left=0)
-    plt.bar(plot1_x, plot1_y, width=30, color='#FF99AC')
-    plt.title("Frequencies of Redactions (Per PDB)")
-    plt.xlabel("Number of Redactions")
-    plt.ylabel("Frequency")
-    plt.show(block=True)
-
-    # ---------- NUMBER OF WORDS REDACTED PLOT --------------
-    plot2_x = list(num_words_dict.keys())
-    plot2_y = list(num_words_dict.values())
-    xnew = np.linspace(min(plot2_x), max(plot2_x), 300)
-    spl = make_interp_spline(plot2_x, plot2_y, k=3)  # type: BSpline
-    power_smooth = spl(xnew)
-    plt.plot(xnew, power_smooth, color='#FF99AC', linewidth=4)
-    plt.title("Number of Words Redacted (Per PDB)")
-    plt.xlabel("PDB #")
-    plt.ylabel("Number of Words Redacted")
-    plt.show(block=True)
-
-    # ---------- NUMBER OF REDACTIONS VS. NUMBER OF WORDS REDACTED PLOT --------------
-    plot2_x = num_words_redacted_x
-    plot2_y = num_redactions_y
-    xnew = np.linspace(min(plot2_x), max(plot2_x), 300)
-    spl = make_interp_spline(plot2_x, plot2_y, k=3)  # type: BSpline
-    power_smooth = spl(xnew)
-    plt.plot(xnew, power_smooth, color='#FF99AC', linewidth=4)
-    plt.title("Number of Redactions vs. Number of Words Redacted (Per PDB)")
-    plt.xlabel("Number of Words Redacted")
-    plt.ylabel("Number of Redactions")
-    plt.show(block=True)
-    """
-
 def image_processing(jpg_file):
     """ Returns:
         1) Redaction Count

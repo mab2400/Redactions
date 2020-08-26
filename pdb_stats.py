@@ -69,5 +69,5 @@ if command == "batch":
     print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted    Map Present")
     test_batch(pdb_from_directory, pdb_to_directory)
 elif command == "analyze":
-    redaction_module.analyze_pdb_results("/Users/carriehaykellar/History_Lab/Redaction Project/Redactions-master/pdb_output.csv")
+    redaction_module.analyze_pdb_results("pdb_output.csv")
 
