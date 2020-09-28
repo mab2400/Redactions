@@ -51,13 +51,13 @@ python3 redactions_show.py jpg_filepath
 
 Our script makes use of OpenCV’s built-in contour and shape detection features to identify the white redaction boxes on each page of a PDB document. 
 
-![](images/step_1.png)
-![](images/step_2.png)
-![](images/step_3.png)
+![](images/step1.png)
+![](images/step2.png)
+![](images/step3.png)
 
 By calculating the area of the redaction in comparison to text on the page, we can estimate the number of words that were redacted as well as what percent of text on the page was redacted.
 
 # Results
 
-![](images/Graph01.png)
-![](images/Graph02.png)
+![](images/Graph01_size.png)
+![](images/Graph02_size.png)
