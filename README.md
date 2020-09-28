@@ -59,5 +59,9 @@ By calculating the area of the redaction in comparison to text on the page, we c
 
 # Results
 
+## NER Top 15 Entities - Redactions per Mention
+China, Moscow, USSR more heavily redacted. Hanoi less redacted.
 ![](images/best1.png)
+
+## Weighted Redactions per Year
 ![](images/best2.png)
