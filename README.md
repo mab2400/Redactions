@@ -47,6 +47,14 @@ python3 redactions_show.py jpg_filepath
 - Running this script will calculate the number of redactions, the percent of text on the page that was redacted, as well as the estimated number of words that were redacted. It will also open a pop-up window containing an image that clearly identifies the locations of the redactions on the page.
 - Exiting out of the pop-up window will automatically take a screenshot so you can save the analyzed image for future reference.
 
+# Results
+
+## NER Top 15 Entities - Redactions per Mention
+China, Moscow, USSR more heavily redacted. Hanoi less redacted.
+![](images/best1.png)
+
+## Weighted Redactions per Year
+![](images/best2.png)
 # How Does It Work?
 
 Our script makes use of OpenCV’s built-in contour and shape detection features to identify the white redaction boxes on each page of a PDB document. 
@@ -57,11 +65,3 @@ Our script makes use of OpenCV’s built-in contour and shape detection features
 
 By calculating the area of the redaction in comparison to text on the page, we can estimate the number of words that were redacted as well as what percent of text on the page was redacted.
 
-# Results
-
-## NER Top 15 Entities - Redactions per Mention
-China, Moscow, USSR more heavily redacted. Hanoi less redacted.
-![](images/best1.png)
-
-## Weighted Redactions per Year
-![](images/best2.png)
