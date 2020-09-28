@@ -65,6 +65,6 @@ China, Moscow, USSR more heavily redacted. Hanoi less redacted.
 
 ## Weighted Redactions per Year
 ![](images/slide2.jpg)
-1961-1963: Check List
-1964: Check List + Brief
-1964+: Brief
+  1961-1963: Check List
+  1964: Check List + Brief
+  1964+: Brief
