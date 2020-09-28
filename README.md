@@ -59,4 +59,5 @@ By calculating the area of the redaction in comparison to text on the page, we c
 
 # Results
 
-[PDF Slide Deck] ResultsSlideDeck.pdf
+![](images/Graph01.png)
+![](images/Graph02.png)
