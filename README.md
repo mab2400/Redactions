@@ -61,10 +61,10 @@ By calculating the area of the redaction in comparison to text on the page, we c
 
 ## NER Top 15 Entities - Redactions per Mention
 China, Moscow, USSR more heavily redacted. Hanoi less redacted.
-![](images/slide1.png)
+![](images/slide1.jpg)
 
 ## Weighted Redactions per Year
-![](images/slide2.png)
+![](images/slide2.jpg)
 1961-1963: Check List
 1964: Check List + Brief
 1964+: Brief
