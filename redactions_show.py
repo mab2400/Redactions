@@ -3,10 +3,10 @@ import cv2
 import numpy as np
 import sys
 
-def show_individual_page(jpg_file):
+def show_individual_page(jpg_file, doc_type):
     """ Analyzes the redactions within a single page of a PDB, displays the image with the redactions indicated. """
 
-    [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map] = redaction_module.image_processing(jpg_file)
+    [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map] = redaction_module.image_processing(jpg_file, doc_type)
 
     img = cv2.imread(jpg_file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -21,7 +21,11 @@ def show_individual_page(jpg_file):
     cv2.drawContours(img, contours, -1, (0,255,0), 3)
 
     # Identifying the Shape
-    (potential, text_potential) = redaction_module.get_redaction_shapes_text_shapes(contours, thresh)
+    if doc_type == "pdb":
+        (potential, text_potential) = redaction_module.pdb_get_redaction_shapes_text_shapes(contours, thresh)
+    if doc_type == "cib":
+        (potential, text_potential) = redaction_module.cib_get_redaction_shapes_text_shapes(contours, thresh)
+
     final_redactions, is_map = redaction_module.get_intersection_over_union(potential)
     redaction_module.drawRedactionRectangles(final_redactions, img)
     redaction_module.putRedactions(final_redactions, img)
@@ -39,4 +43,5 @@ def show_individual_page(jpg_file):
     redaction_module.take_screenshot(jpg_file)
 
 jpg_file = sys.argv[1]
-show_individual_page(jpg_file)
+# TODO: Make an argument called doc_type
+show_individual_page(jpg_file, doc_type)

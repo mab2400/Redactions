@@ -25,7 +25,7 @@ def convert_all_pdfs_to_jpgs(pdf_dir):
 
 def pdf_to_jpg(pdf_dir, pdf_file):
     """ Converts a multiple-page PDF into multiple single JPEG files """
-    # pdf_dir looks like "/Users/miabramel/Downloads/pdbs"
+    # pdf_dir looks like "/Users/miabramel/Downloads/pdbs" as an example
     os.chdir(pdf_dir)
     full_name = pdf_dir + "/" + pdf_file
     pages = convert_from_path(full_name, 300)
@@ -34,12 +34,12 @@ def pdf_to_jpg(pdf_dir, pdf_file):
         page.save("%s-page%d.jpg" % (full_name, pages.index(page)), "JPEG")
 
 def putRedactions(redaction_shapes, img):
-    """ Writes REDACTION on top of the image. """
+    """ Writes REDACTED on top of the image. """
     for shape in redaction_shapes:
         bottom_left_corner = (int(shape[0]), int(shape[3] - 15))
         top_left_corner = (int(shape[0]), int(shape[2]))
         bottom_right_corner = (int(shape[1]), int(shape[3]))
-        cv2.putText(img, "REDACTION", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+        cv2.putText(img, "REDACTED", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
 
 def drawRedactionRectangles(redaction_shapes, img):
     """ Draws the bounding rectangles of the detected redactions on the page. """
@@ -55,7 +55,7 @@ def drawTextRectangles(text_shapes, img):
         bottom_right_corner = (int(shape[1]), int(shape[3]))
         cv2.rectangle(img, top_left_corner, bottom_right_corner, (255,0,0), 5)
 
-def get_pdb_stats(redaction_shapes, text_shapes):
+def get_stats(redaction_shapes, text_shapes):
     """ Returns:
         1) the estimated area of text redacted on the page
         2) the total text area on the page
@@ -105,7 +105,6 @@ def get_intersection_over_union(potential):
         for boxB in range(boxA+1, len(potential)):
             iou = getIOU(potential[boxA], potential[boxB])
 
-            print(iou)
             # if redactions overlap, append to reject list
             if iou > 0.1:
 
@@ -155,7 +154,7 @@ def getIOU(boxA, boxB):
     # return the intersection over union value
     return iou
 
-def get_redaction_shapes_text_shapes(contours, img):
+def pdb_get_redaction_shapes_text_shapes(contours, img):
     potential = []
     text_potential = []
 
@@ -195,16 +194,57 @@ def get_redaction_shapes_text_shapes(contours, img):
 
     return (potential, text_potential)
 
-def analyze_pdb_results(output_file):
+def cib_get_redaction_shapes_text_shapes(contours, img):
+    potential = []
+    text_potential = []
+
+    for c in contours:
+        M = cv2.moments(c)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            shape = 0
+            peri = cv2.arcLength(c, True)
+
+            # Detecting the redaction
+            # if cY > 83 and cY < 2981 and cX > 320 and cX < 2509:
+            # compute the bounding box of the contour
+            approx = cv2.approxPolyDP(c, 0.04*peri, True)
+            (x, y, w, h) = cv2.boundingRect(approx)
+            shape = x, x+w, y, y+h
+            i = np.array(img)
+            bounding = i[y:y+h+1, x:x+w+1]
+
+            if x > 1448 and x < 1942 and y > 25 and y < 200 and h > 50 and w > 200:
+                # Getting the one redaction at the top of the page with words within it.
+                potential.append(shape)
+            else:
+                # Determine that contour is 95% white space
+                non_zero = np.count_nonzero(bounding)
+                percent_white = non_zero / bounding.size
+                if percent_white > .95:
+                    print("x, y ", x, y)
+                    print("Percent white:", percent_white)
+                    if w < 3250 and w > 20 and h < 3250 and h > 20:
+                        # Making sure it's within the margins of the image
+                        potential.append(shape)
+
+            # Detecting the text
+            if peri > 25 and peri < 150:
+                text_potential.append(shape)
+
+    return (potential, text_potential)
+
+def analyze_results(output_file):
     import matplotlib.pyplot as plt
     from scipy.interpolate import make_interp_spline, BSpline
 
-    pdb_count = 0
+    doc_count = 0
     total_redaction_count = 0
     total_percent_text_redacted = 0
     total_num_words_redacted = 0
 
-    # I will assume the max number of redactions in a PDB is 1000.
+    # I will assume the max number of redactions in a document is 1000.
     redaction_num_to_freq = {i:0 for i in range(1000)}
 
     # I know the percents will go from 0 to 100, I make the steps 0.5
@@ -236,10 +276,10 @@ def analyze_pdb_results(output_file):
             total_percent_text_redacted += percent_text_redacted
             total_num_words_redacted += num_words_redacted
 
-            pdb_count += 1
+            doc_count += 1
 
-    # Making a list of 1, 2, 3, ... pdb_count
-    num_words_keys = [i for i in range(0, pdb_count+1)]
+    # Making a list of 1, 2, 3, ... doc_count
+    num_words_keys = [i for i in range(0, doc_count+1)]
     list_of_redaction_nums.sort()
     # Making a dictionary to be used for a graph
     num_words_dict = {num1:num2 for (num1, num2) in zip(num_words_keys, list_of_redaction_nums)}
@@ -247,10 +287,10 @@ def analyze_pdb_results(output_file):
     output.close()
 
     print("------------------------------------------------------------------------")
-    print("PDB Count: ", pdb_count)
-    print("Average Redaction Count: ", int(total_redaction_count / pdb_count))
-    print("Average Percent of Text Redacted: ", total_percent_text_redacted / pdb_count)
-    print("Average Number of Words Redacted: ", int(total_num_words_redacted / pdb_count))
+    print("Document Count: ", doc_count)
+    print("Average Redaction Count: ", int(total_redaction_count / doc_count))
+    print("Average Percent of Text Redacted: ", total_percent_text_redacted / doc_count)
+    print("Average Number of Words Redacted: ", int(total_num_words_redacted / doc_count))
 
     # --------- FREQUENCIES OF PERCENT TEXT REDACTED PLOT ----
     plot2_x = list(percent_to_freq.keys())
@@ -261,7 +301,7 @@ def analyze_pdb_results(output_file):
     plt.ylabel("Frequency")
     plt.show(block=True)
 
-def image_processing(jpg_file):
+def image_processing(jpg_file, doc_type):
     """ Returns:
         1) Redaction Count
         2) Redacted Text Area
@@ -286,9 +326,15 @@ def image_processing(jpg_file):
     redactions = []
     next_potential = []
 
-    (potential, text_potential) = get_redaction_shapes_text_shapes(contours, thresh)
-    final_redactions, is_map = get_intersection_over_union(potential)
-    redaction_count = len(final_redactions)
-    [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_pdb_stats(final_redactions, text_potential)
+    if doc_type == "pdb":
+        (potential, text_potential) = pdb_get_redaction_shapes_text_shapes(contours, thresh)
+        final_redactions, is_map = get_intersection_over_union(potential)
+        redaction_count = len(final_redactions)
+        [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_pdb_stats(final_redactions, text_potential)
+    if doc_type == "cib":
+        (potential, text_potential) = cib_get_redaction_shapes_text_shapes(contours, thresh)
+        final_redactions, is_map = get_intersection_over_union(potential)
+        redaction_count = len(final_redactions)
+        [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_cib_stats(final_redactions, text_potential)
 
     return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map]
