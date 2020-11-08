@@ -114,7 +114,6 @@ def get_intersection_over_union(potential):
     # assume it is a map
     if len(rejects) > 0 and Counter(rejects).most_common(1)[0][1] > 4:
         is_map = True
-        # map_area.append(Counter(rejects).most_common(1)[0][0])
 
     if is_map:
         final_redactions = []
@@ -207,8 +206,7 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
             peri = cv2.arcLength(c, True)
 
             # Detecting the redaction
-            # if cY > 83 and cY < 2981 and cX > 320 and cX < 2509:
-            # compute the bounding box of the contour
+            # Compute the bounding box of the contour
             approx = cv2.approxPolyDP(c, 0.04*peri, True)
             (x, y, w, h) = cv2.boundingRect(approx)
             shape = x, x+w, y, y+h
@@ -223,8 +221,6 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
                 non_zero = np.count_nonzero(bounding)
                 percent_white = non_zero / bounding.size
                 if percent_white > .95:
-                    print("x, y ", x, y)
-                    print("Percent white:", percent_white)
                     if w < 3250 and w > 20 and h < 3250 and h > 20:
                         # Making sure it's within the margins of the image
                         potential.append(shape)
@@ -233,6 +229,7 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
             if peri > 25 and peri < 150:
                 text_potential.append(shape)
 
+    print("RETURNING")
     return (potential, text_potential)
 
 def analyze_results(output_file):
@@ -328,13 +325,11 @@ def image_processing(jpg_file, doc_type):
 
     if doc_type == "pdb":
         (potential, text_potential) = pdb_get_redaction_shapes_text_shapes(contours, thresh)
-        final_redactions, is_map = get_intersection_over_union(potential)
-        redaction_count = len(final_redactions)
-        [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_pdb_stats(final_redactions, text_potential)
     if doc_type == "cib":
         (potential, text_potential) = cib_get_redaction_shapes_text_shapes(contours, thresh)
-        final_redactions, is_map = get_intersection_over_union(potential)
-        redaction_count = len(final_redactions)
-        [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_cib_stats(final_redactions, text_potential)
 
-    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map]
+    final_redactions, is_map = get_intersection_over_union(potential)
+    redaction_count = len(final_redactions)
+    [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_stats(final_redactions, text_potential)
+
+    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map, potential, text_potential]

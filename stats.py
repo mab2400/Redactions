@@ -22,7 +22,7 @@ def analyze(directory, pdf_file, doc_type):
         # Iterating through each page of the PDB
         if jpg_file.endswith(".jpg"):
 
-            [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map] = redaction_module.image_processing(jpg_file, doc_type)
+            [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map, potential, text_potential] = redaction_module.image_processing(jpg_file, doc_type)
 
             total_redaction_count += redaction_count
             total_redacted_text_area += redacted_text_area
@@ -64,10 +64,11 @@ def test_batch(from_dir, to_dir, doc_type):
             shutil.move(from_dir+ pdf_file, destination)
 
 command = sys.argv[1]
+doc_type = sys.argv[2]
 # TODO: Make one of the arguments called doc_type
 if command == "batch":
-    from_dir = sys.argv[2]
-    to_dir = sys.argv[3]
+    from_dir = sys.argv[3]
+    to_dir = sys.argv[4]
     print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted    Map Present")
     test_batch(from_dir, to_dir, doc_type)
 elif command == "analyze":
