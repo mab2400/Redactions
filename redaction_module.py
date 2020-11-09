@@ -76,7 +76,7 @@ def get_stats(redaction_shapes, text_shapes):
         text_area += area
     # I calculated that text makes up 26% of the redaction rectangle area (total_redaction_rectangle_area).
     redacted_text_area = .26 * total_redaction_rectangle_area
-    estimated_text_area = text_area + redacted_text_area
+    estimated_text_area = text_area + redacted_text_area # This includes maps
     # Now, I will divide redacted_text_area by the (estimated) area of a single word in order to estimate
     # the number of words redacted.
     estimated_word_area = 4665
@@ -120,7 +120,7 @@ def get_intersection_over_union(potential):
     else:
         final_redactions = [x for x in potential if x not in rejects]
 
-    return final_redactions, is_map
+    return final_redactions
 
 def getIOU(boxA, boxB):
     """
@@ -229,7 +229,6 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
             if peri > 25 and peri < 150:
                 text_potential.append(shape)
 
-    print("RETURNING")
     return (potential, text_potential)
 
 def analyze_results(output_file):
@@ -328,8 +327,8 @@ def image_processing(jpg_file, doc_type):
     if doc_type == "cib":
         (potential, text_potential) = cib_get_redaction_shapes_text_shapes(contours, thresh)
 
-    final_redactions, is_map = get_intersection_over_union(potential)
+    final_redactions = get_intersection_over_union(potential)
     redaction_count = len(final_redactions)
     [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_stats(final_redactions, text_potential)
 
-    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, is_map, potential, text_potential]
+    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, potential, text_potential]
