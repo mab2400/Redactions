@@ -40,7 +40,7 @@ def analyze(directory, pdf_file, doc_type):
 
     data = []
     # open csv file and write the stats in a single row representing the document.
-    with open('../pdb_output.csv', mode='a+') as output:
+    with open('../output.csv', mode='a+') as output:
         output_writer = csv.writer(output, delimiter=',')
         row = [pdf_file, total_redaction_count, total_percent_text_redacted, total_estimated_num_words_redacted]
         data.append(row)
@@ -55,20 +55,20 @@ def test_batch(from_dir, to_dir, doc_type):
     os.chdir(from_dir)
     for pdf_file in os.listdir(from_dir):
         if pdf_file.endswith(".pdf"):
-            # Appends a row to the csv file "../pdb_output.csv" with the stats from that particular document
+            # Appends a row to the csv file "../output.csv" with the stats from that particular document
             analyze(from_dir, pdf_file, doc_type)
 
             # Moving to the 'to' directory since we're done analyzing it.
             destination = to_dir + pdf_file
             shutil.move(from_dir+ pdf_file, destination)
 
+# python3 stats.py cib batch from_dir to_dir
 doc_type = sys.argv[1]
 command = sys.argv[2]
 from_dir = sys.argv[3]
 to_dir = sys.argv[4]
-# TODO: Make one of the arguments called doc_type
 if command == "batch":
     print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted")
     test_batch(from_dir, to_dir, doc_type)
 elif command == "analyze":
-    redaction_module.analyze_results("../pdb_output.csv")
+    redaction_module.analyze_results("../output.csv")
