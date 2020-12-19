@@ -33,6 +33,16 @@ def pdf_to_jpg(pdf_dir, pdf_file):
     for page in pages:
         page.save("%s-page%d.jpg" % (full_name, pages.index(page)), "JPEG")
 
+def pdf_to_png(pdf_dir, pdf_file):
+    """ Converts a multiple-page PDF into multiple single PNG files """
+    # pdf_dir looks like "/Users/miabramel/Downloads/pdbs" as an example
+    os.chdir(pdf_dir)
+    full_name = pdf_dir + "/" + pdf_file
+    pages = convert_from_path(full_name, 300)
+    full_name = full_name[:-4]
+    for page in pages:
+        page.save("%s-page%d.png" % (full_name, pages.index(page)), format="png")
+
 def putRedactions(redaction_shapes, img):
     """ Writes REDACTED on top of the image. """
     for shape in redaction_shapes:
@@ -40,6 +50,27 @@ def putRedactions(redaction_shapes, img):
         top_left_corner = (int(shape[0]), int(shape[2]))
         bottom_right_corner = (int(shape[1]), int(shape[3]))
         cv2.putText(img, "REDACTED", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (36,255,12), 10)
+
+def put_type1_redactions(redaction_shapes, img):
+    for shape in redaction_shapes:
+        bottom_left_corner = (int(shape[0]), int(shape[3] - 15))
+        top_left_corner = (int(shape[0]), int(shape[2]))
+        bottom_right_corner = (int(shape[1]), int(shape[3]))
+        cv2.putText(img, "TYPE 1", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,0), 10)
+
+def put_type2_redactions(redaction_shapes, img):
+    for shape in redaction_shapes:
+        bottom_left_corner = (int(shape[0]), int(shape[3] - 15))
+        top_left_corner = (int(shape[0]), int(shape[2]))
+        bottom_right_corner = (int(shape[1]), int(shape[3]))
+        cv2.putText(img, "TYPE 2", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,0), 10)
+
+def put_type3_redactions(redaction_shapes, img):
+    for shape in redaction_shapes:
+        bottom_left_corner = (int(shape[0]), int(shape[3] - 15))
+        top_left_corner = (int(shape[0]), int(shape[2]))
+        bottom_right_corner = (int(shape[1]), int(shape[3]))
+        cv2.putText(img, "TYPE 3", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,0), 10)
 
 def drawRedactionRectangles(redaction_shapes, img):
     """ Draws the bounding rectangles of the detected redactions on the page. """
@@ -202,34 +233,64 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
         if M["m00"] != 0:
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
-            shape = 0
             peri = cv2.arcLength(c, True)
 
-            # Detecting the redaction
-            # Compute the bounding box of the contour
-            approx = cv2.approxPolyDP(c, 0.04*peri, True)
-            (x, y, w, h) = cv2.boundingRect(approx)
-            shape = x, x+w, y, y+h
-            i = np.array(img)
-            bounding = i[y:y+h+1, x:x+w+1]
+            if peri > 500:
+                # Detecting the redaction
+                # Compute the bounding box of the contour
+                approx = cv2.approxPolyDP(c, 0.04*peri, True)
+                (x, y, w, h) = cv2.boundingRect(approx)
+                shape = x, x+w, y, y+h
+                i = np.array(img)
+                bounding = i[y:y+h+1, x:x+w+1]
 
-            if x > 1448 and x < 1942 and y > 25 and y < 200 and h > 50 and w > 200:
-                # Getting the one redaction at the top of the page with words within it.
-                potential.append(shape)
-            else:
-                # Determine that contour is 95% white space
-                non_zero = np.count_nonzero(bounding)
-                percent_white = non_zero / bounding.size
-                if percent_white > .95:
-                    if w < 3250 and w > 20 and h < 3250 and h > 20:
-                        # Making sure it's within the margins of the image
-                        potential.append(shape)
+                if x > 1448 and x < 1942 and y > 25 and y < 200 and h > 50 and w > 200:
+                    # Getting the one redaction at the top of the page with words within it.
+                    potential.append(shape)
+                else:
+                    # Determine that contour is 95% white space
+                    # RGB 0,0,0 is BLACK --> non_zero is WHITE
+                    white = np.count_nonzero(bounding)
+                    percent_white = white / bounding.size
+                    if percent_white > .80:
+                        if w < 3250 and w > 20 and h < 3250 and h > 20:
+                            # Making sure it's within the margins of the image
+                            potential.append(shape)
 
             # Detecting the text
             if peri > 25 and peri < 150:
+                approx = cv2.approxPolyDP(c, 0.04*peri, True)
+                (x, y, w, h) = cv2.boundingRect(approx)
+                shape = x, x+w, y, y+h
                 text_potential.append(shape)
 
-    return (potential, text_potential)
+    (type1, type2, type3) = get_redaction_types(potential)
+
+    return (potential, text_potential, type1, type2, type3)
+
+def get_redaction_types(potential):
+    # potential is a list of shapes (x, x+w, y, y+h)
+    type1 = []
+    type2 = []
+    type3 = []
+
+    for (a, b, c, d) in potential:
+        x = a
+        w = b-a
+        y = c
+        h = d-c
+
+        # TYPE 3: TOP/BOTTOM MARGIN
+        if y < 320 or y > 2609:
+            type3.append((a,b,c,d))
+            continue
+
+        # TYPE 2: LEFT/RIGHT MARGIN
+        if x < 484 or x > 2101:
+            type2.append((a,b,c,d))
+            continue
+
+    return (type1, type2, type3)
 
 def analyze_results(output_file):
     import matplotlib.pyplot as plt
@@ -248,6 +309,8 @@ def analyze_results(output_file):
     percent_range.append(100)
     percent_to_freq = {j:0 for j in percent_range}
 
+    name_to_percent = {}
+
     list_of_redaction_nums = []
 
     num_words_redacted_x = []
@@ -257,6 +320,7 @@ def analyze_results(output_file):
         reader = csv.reader(output)
         for row in reader:
 
+            name = row[0][5:12]
             redaction_num = int(row[1])
             num_redactions_y.append(redaction_num)
             percent_text_redacted = float(row[2])
@@ -265,8 +329,10 @@ def analyze_results(output_file):
             list_of_redaction_nums.append(num_words_redacted)
 
             redaction_num_to_freq[redaction_num] += 1
+            name_to_percent[name] = percent_text_redacted
             # rounds the percent to the nearest .5
-            percent_to_freq[round(percent_text_redacted * 200) / 2] += 1
+            rounded_percent = round(percent_text_redacted * 200) / 2
+            percent_to_freq[rounded_percent] += 1
 
             total_redaction_count += redaction_num
             total_percent_text_redacted += percent_text_redacted
@@ -282,6 +348,57 @@ def analyze_results(output_file):
 
     output.close()
 
+    dates = []
+
+    with open("cib_meta.csv", mode='r') as output:
+        reader = csv.reader(output)
+        row_count = 0
+        for row in reader:
+            if row_count == 0:
+                row_count+=1
+                continue
+            entire_date = row[12].split()
+            if len(entire_date) > 0:
+                date = int(entire_date[-1])
+                dates.append(date)
+            row_count+=1
+
+    output.close()
+
+    date_to_percents = {date:[] for date in dates}
+
+    with open("cib_meta.csv", mode='r') as output:
+        reader = csv.reader(output)
+        row_count = 0
+        for row in reader:
+            if row_count == 0:
+                row_count+=1
+                continue
+            name = row[4][1:]
+            entire_date = row[12].split()
+            if len(entire_date) > 0:
+                date = int(entire_date[-1])
+                percent = 0
+                for key in name_to_percent.keys():
+                    if key == name:
+                        percent = name_to_percent[key]
+                        break
+                date_to_percents[date].append(percent)
+            row_count+=1
+
+    output.close()
+
+    date_to_avg_percent = {}
+
+    for date in date_to_percents.keys():
+        avg_percent = sum(date_to_percents[date]) / len(date_to_percents[date])
+        date_to_avg_percent[date] = avg_percent
+
+    print(date_to_avg_percent)
+
+    s = sum(date_to_avg_percent.values())
+    print(s / len(date_to_avg_percent.values()))
+
     print("------------------------------------------------------------------------")
     print("Document Count: ", doc_count)
     print("Average Redaction Count: ", int(total_redaction_count / doc_count))
@@ -292,9 +409,18 @@ def analyze_results(output_file):
     plot2_x = list(percent_to_freq.keys())
     plot2_y = list(percent_to_freq.values())
     plt.bar(plot2_x, plot2_y, width=.8, color='#FF99AC')
-    plt.title("Frequencies of Percent Text Redacted (Per PDB)")
+    plt.title("Frequencies of Percent Text Redacted (Per Document)")
     plt.xlabel("Percent Text Redacted")
     plt.ylabel("Frequency")
+    plt.show(block=True)
+
+    # --------- PERCENT TEXT REDACTED OVER TIME PLOT ----
+    plot3_x = list(date_to_avg_percent.keys())
+    plot3_y = list(date_to_avg_percent.values())
+    plt.bar(plot3_x, plot3_y, color='#FF99AC')
+    plt.title("Avg Percent Text Redacted Per Document Per Year")
+    plt.xlabel("Year")
+    plt.ylabel("Avg Percent Text Redacted")
     plt.show(block=True)
 
 def image_processing(jpg_file, doc_type):
@@ -307,28 +433,33 @@ def image_processing(jpg_file, doc_type):
     import cv2
     import numpy as np
     img = cv2.imread(jpg_file)
-    img_original = cv2.imread(jpg_file)
+
+    # ======= EDITING / FILTERING THE IMAGE =======
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    contours = cv2.findContours(gray, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    contours = contours[0] if len(contours) == 2 else contours[1]
+
     kernel = np.ones((3,3), np.uint8)
     img_erosion = cv2.erode(gray, kernel, iterations=1)
     blur = cv2.GaussianBlur(img_erosion,(5,5),0)
-    thresh = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,3,2)
+    edited_img = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,3,2)
 
-    # Find contours and detect shape
-    contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    # ======= Finding contours within the edited_img =======
+    contours = cv2.findContours(edited_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     contours = contours[0] if len(contours) == 2 else contours[1]
+    cv2.drawContours(edited_img, contours, -1, (0,0,0), 3)
 
     # Identifying the Shape
     redactions = []
     next_potential = []
 
     if doc_type == "pdb":
-        (potential, text_potential) = pdb_get_redaction_shapes_text_shapes(contours, thresh)
+        (potential, text_potential) = pdb_get_redaction_shapes_text_shapes(contours, edited_img)
     if doc_type == "cib":
-        (potential, text_potential) = cib_get_redaction_shapes_text_shapes(contours, thresh)
+        (potential, text_potential, type1, type2, type3) = cib_get_redaction_shapes_text_shapes(contours, edited_img)
 
     final_redactions = get_intersection_over_union(potential)
     redaction_count = len(final_redactions)
     [redacted_text_area, estimated_text_area, estimated_num_words_redacted] = get_stats(final_redactions, text_potential)
 
-    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, potential, text_potential]
+    return [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, potential, text_potential, type1, type2, type3]
