@@ -21,7 +21,8 @@ To find the redactions in a __batch__ of documents and generate a CSV file conta
 ```bash
 python3 stats.py <doc_type> batch <from_dir> <to_directory>
 ```
-- __doc_type__ indicates the document type of the files you inputted. For example, if your files are President's Daily Briefs, replace doc_type with pdb. If your files are Central Intelligence Bulletins, replace doc_type with cib. You should expect to see a table being generated on the screen. Note that the raw data will be stored in __output.csv__ for future use if necessary.
+- __doc_type__ indicates the document type of the files you inputted. For example, if your files are President's Daily Briefs, replace doc_type with pdb. If your files are Central Intelligence Bulletins, replace doc_type with cib. 
+- You should expect to see a table being generated on the screen. Note that the raw data will be stored in __output.csv__ for future use if necessary.
 
 To generate graphs and __analyze__ the data in the CSV file: 
 
@@ -41,11 +42,11 @@ Analyzing the redactions on a single page of a document file and display an imag
 ## Running the Script
 
 ```bash
-python3 redactions_show.py <jpg_filepath>
+python3 redactions_show.py <doc_type> <jpg_filepath>
 ```
-- __jpg_filepath__ is the filepath for a single page of a document. It must be a .jpg file.
-- Running this script will calculate the number of redactions, the percent of text on the page that was redacted, as well as the estimated number of words that were redacted. It will also open a pop-up window containing an image that clearly identifies the locations of the redactions on the page.
-- Exiting out of the pop-up window will automatically take a screenshot so you can save the analyzed image for future reference.
+- __jpg_filepath__ is the filepath for a single page of a document. It must be a JPG file.
+- Running this script will calculate the number of redactions, the percent of text on the page that was redacted, as well as the estimated number of words that were redacted. It will also open a pop-up window containing an image that identifies the locations of the redactions on the page.
+- Once the pop-up window opens, press any key, which automatically takes a screenshot so you can save the analyzed image for future reference.
 
 # Results
 
