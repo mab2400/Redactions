@@ -56,21 +56,21 @@ def put_type1_redactions(redaction_shapes, img):
         bottom_left_corner = (int(shape[0]), int(shape[3] - 15))
         top_left_corner = (int(shape[0]), int(shape[2]))
         bottom_right_corner = (int(shape[1]), int(shape[3]))
-        cv2.putText(img, "TYPE 1", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,0), 10)
+        cv2.putText(img, "TYPE 1", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,255), 10)
 
 def put_type2_redactions(redaction_shapes, img):
     for shape in redaction_shapes:
         bottom_left_corner = (int(shape[0]), int(shape[3] - 15))
         top_left_corner = (int(shape[0]), int(shape[2]))
         bottom_right_corner = (int(shape[1]), int(shape[3]))
-        cv2.putText(img, "TYPE 2", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,0), 10)
+        cv2.putText(img, "TYPE 2", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,255), 10)
 
 def put_type3_redactions(redaction_shapes, img):
     for shape in redaction_shapes:
         bottom_left_corner = (int(shape[0]), int(shape[3] - 15))
         top_left_corner = (int(shape[0]), int(shape[2]))
         bottom_right_corner = (int(shape[1]), int(shape[3]))
-        cv2.putText(img, "TYPE 3", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,0), 10)
+        cv2.putText(img, "TYPE 3", bottom_left_corner, cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0,0,255), 10)
 
 def drawRedactionRectangles(redaction_shapes, img):
     """ Draws the bounding rectangles of the detected redactions on the page. """
@@ -264,11 +264,11 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
                 shape = x, x+w, y, y+h
                 text_potential.append(shape)
 
-    (type1, type2, type3) = get_redaction_types(potential)
+    (type1, type2, type3) = get_redaction_types(potential, img)
 
     return (potential, text_potential, type1, type2, type3)
 
-def get_redaction_types(potential):
+def get_redaction_types(potential, img):
     # potential is a list of shapes (x, x+w, y, y+h)
     type1 = []
     type2 = []
@@ -281,7 +281,7 @@ def get_redaction_types(potential):
         h = d-c
 
         # TYPE 3: TOP/BOTTOM MARGIN
-        if y < 320 or y > 2609:
+        if y < 200 or y > 2609:
             type3.append((a,b,c,d))
             continue
 
@@ -289,6 +289,21 @@ def get_redaction_types(potential):
         if x < 484 or x > 2101:
             type2.append((a,b,c,d))
             continue
+
+        # TYPE 1: END OF A PARAGRAPH ("Page X" after the redaction, and extra whitespace under it)
+        # Create a box of the same size as the redaction, but shift it down by h/2 pixels
+        x1 = x
+        w1 = w
+        h1 = h
+        y1 = y+int(h/2)
+        i = np.array(img)
+        bounding = i[y1:y1+h1+1, x1:x1+w1+1]
+        non_zero = np.count_nonzero(bounding)
+        # Determine that the box is 95% white space
+        if (non_zero / bounding.size) > .60:
+            print("applying below box for type 1")
+            type1.append((a,b,c,d))
+            drawRedactionRectangles([(a,b,c,d)], img)
 
     return (type1, type2, type3)
 
