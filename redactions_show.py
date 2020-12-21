@@ -14,10 +14,10 @@ def show_individual_page(jpg_file, doc_type):
 
     img = cv2.imread(jpg_file)
     redaction_module.drawRedactionRectangles(final_redactions, img)
-    #redaction_module.putRedactions(final_redactions, img)
-    redaction_module.put_type1_redactions(final_type1, img)
-    redaction_module.put_type2_redactions(final_type2, img)
-    redaction_module.put_type3_redactions(final_type3, img)
+    redaction_module.putRedactions(final_redactions, img)
+    #redaction_module.put_type1_redactions(final_type1, img)
+    #redaction_module.put_type2_redactions(final_type2, img)
+    #redaction_module.put_type3_redactions(final_type3, img)
 
     print("Redaction Count: ", redaction_count)
     if estimated_text_area != 0:

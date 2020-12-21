@@ -22,7 +22,7 @@ def analyze(directory, pdf_file, doc_type):
         # Iterating through each page of the PDB
         if jpg_file.endswith(".jpg"):
 
-            [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, potential, text_potential] = redaction_module.image_processing(jpg_file, doc_type)
+            [redaction_count, redacted_text_area, estimated_text_area, estimated_num_words_redacted, potential, text_potential, type1, type2, type3] = redaction_module.image_processing(jpg_file, doc_type)
 
             total_redaction_count += redaction_count
             total_redacted_text_area += redacted_text_area
@@ -40,7 +40,7 @@ def analyze(directory, pdf_file, doc_type):
 
     data = []
     # open csv file and write the stats in a single row representing the document.
-    with open('../output.csv', mode='a+') as output:
+    with open('output.csv', mode='a+') as output:
         output_writer = csv.writer(output, delimiter=',')
         row = [pdf_file, total_redaction_count, total_percent_text_redacted, total_estimated_num_words_redacted]
         data.append(row)
@@ -55,7 +55,7 @@ def test_batch(from_dir, to_dir, doc_type):
     os.chdir(from_dir)
     for pdf_file in os.listdir(from_dir):
         if pdf_file.endswith(".pdf"):
-            # Appends a row to the csv file "../output.csv" with the stats from that particular document
+            # Appends a row to the csv file "output.csv" with the stats from that particular document
             analyze(from_dir, pdf_file, doc_type)
 
             # Moving to the 'to' directory since we're done analyzing it.
@@ -65,10 +65,10 @@ def test_batch(from_dir, to_dir, doc_type):
 # python3 stats.py cib batch from_dir to_dir
 doc_type = sys.argv[1]
 command = sys.argv[2]
-from_dir = sys.argv[3]
-to_dir = sys.argv[4]
 if command == "batch":
+    from_dir = sys.argv[3]
+    to_dir = sys.argv[4]
     print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted")
     test_batch(from_dir, to_dir, doc_type)
 elif command == "analyze":
-    redaction_module.analyze_results("../output.csv")
+    redaction_module.analyze_results("output.csv")

@@ -396,7 +396,9 @@ def analyze_results(output_file):
                     if key == name:
                         percent = name_to_percent[key]
                         break
-                date_to_percents[date].append(percent)
+                # TODO: This is only temporary. For when the output file does not contain all CIB results.
+                if percent != 0:
+                    date_to_percents[date].append(percent)
             row_count+=1
 
     output.close()
@@ -404,7 +406,14 @@ def analyze_results(output_file):
     date_to_avg_percent = {}
 
     for date in date_to_percents.keys():
+        #print(date)
+        #print(date_to_percents[date])
+        #print("max percent: ", max(date_to_percents[date]))
+        #print("sum: ", sum(date_to_percents[date]))
+        #print("len: ", len(date_to_percents[date]))
         avg_percent = sum(date_to_percents[date]) / len(date_to_percents[date])
+        #print("avg: ", avg_percent)
+        #print("")
         date_to_avg_percent[date] = avg_percent
 
     print(date_to_avg_percent)
@@ -461,6 +470,10 @@ def image_processing(jpg_file, doc_type):
     contours = cv2.findContours(edited_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     contours = contours[0] if len(contours) == 2 else contours[1]
     cv2.drawContours(edited_img, contours, -1, (0,0,0), 3)
+
+    #cv2.imshow("edited", edited_img)
+    #cv2.waitKey()
+    #take_screenshot(jpg_file)
 
     # Identifying the Shape
     redactions = []
