@@ -135,15 +135,13 @@ def get_intersection_over_union(potential):
     for boxA in range(0, len(potential)-1):
         for boxB in range(boxA+1, len(potential)):
             iou = getIOU(potential[boxA], potential[boxB])
-            print(iou)
 
             # if redactions overlap, append to reject list
-            if iou > 0.1:
+            if iou > 0.001:
                 rejects.append(potential[boxA])
 
     if len(rejects) > 0 and Counter(rejects).most_common(1)[0][1] > 4:
         is_map = True
-        print("map detected")
 
     final_redactions = [x for x in potential if x not in rejects]
 
@@ -242,6 +240,7 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
                     # Handling the case in which the script treats the entire outline of the page as a redaction
                     continue
                 shape = x, x+w, y, y+h
+                area = w*h
                 i = np.array(img)
                 bounding = i[y:y+h+1, x:x+w+1]
 
@@ -249,11 +248,11 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
                     # Getting the one redaction at the top of the page with words within it.
                     potential.append(shape)
                 else:
-                    # Determine that contour is 95% white space
+                    # Determine the percentage of white space
                     # RGB 0,0,0 is BLACK --> non_zero is WHITE
                     white = np.count_nonzero(bounding)
                     percent_white = white / bounding.size
-                    if percent_white > .80:
+                    if (percent_white > .80 and area < 100000) or (percent_white > .85 and area < 1000000) or (percent_white > .95 and area > 1000000):
                         if w < 3250 and w > 20 and h < 3250 and h > 20:
                             # Making sure it's within the margins of the image
                             potential.append(shape)
