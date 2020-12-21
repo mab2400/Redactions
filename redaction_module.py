@@ -135,21 +135,17 @@ def get_intersection_over_union(potential):
     for boxA in range(0, len(potential)-1):
         for boxB in range(boxA+1, len(potential)):
             iou = getIOU(potential[boxA], potential[boxB])
+            print(iou)
 
             # if redactions overlap, append to reject list
             if iou > 0.1:
-
                 rejects.append(potential[boxA])
 
-    # If the most common "redaction" is overlapping with 20 others,
-    # assume it is a map
     if len(rejects) > 0 and Counter(rejects).most_common(1)[0][1] > 4:
         is_map = True
+        print("map detected")
 
-    if is_map:
-        final_redactions = []
-    else:
-        final_redactions = [x for x in potential if x not in rejects]
+    final_redactions = [x for x in potential if x not in rejects]
 
     return final_redactions
 
@@ -222,7 +218,9 @@ def pdb_get_redaction_shapes_text_shapes(contours, img):
                     shape = x, x+w, y, y+h
                     text_potential.append(shape)
 
-    return (potential, text_potential)
+    (type1, type2, type3) = get_redaction_types(potential, img)
+
+    return (potential, text_potential, type1, type2, type3)
 
 def cib_get_redaction_shapes_text_shapes(contours, img):
     potential = []
@@ -240,6 +238,9 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
                 # Compute the bounding box of the contour
                 approx = cv2.approxPolyDP(c, 0.04*peri, True)
                 (x, y, w, h) = cv2.boundingRect(approx)
+                if w*h > 6000000:
+                    # Handling the case in which the script treats the entire outline of the page as a redaction
+                    continue
                 shape = x, x+w, y, y+h
                 i = np.array(img)
                 bounding = i[y:y+h+1, x:x+w+1]
@@ -286,7 +287,7 @@ def get_redaction_types(potential, img):
             continue
 
         # TYPE 2: LEFT/RIGHT MARGIN
-        if x < 484 or x > 2101:
+        if x < 484 or x > 2101 and w*h > 1000:
             type2.append((a,b,c,d))
             continue
 
@@ -300,10 +301,8 @@ def get_redaction_types(potential, img):
         bounding = i[y1:y1+h1+1, x1:x1+w1+1]
         non_zero = np.count_nonzero(bounding)
         # Determine that the box is 95% white space
-        if (non_zero / bounding.size) > .60:
-            print("applying below box for type 1")
+        if h < 90 and (non_zero / bounding.size) > .50:
             type1.append((a,b,c,d))
-            drawRedactionRectangles([(a,b,c,d)], img)
 
     return (type1, type2, type3)
 
@@ -443,7 +442,7 @@ def image_processing(jpg_file, doc_type):
         1) Redaction Count
         2) Redacted Text Area
         3) Estimated Number of Words Redacted
-        for A SINGLE JPG PAGE OF A PDB."""
+        for a single PAGE """
 
     import cv2
     import numpy as np
@@ -469,7 +468,7 @@ def image_processing(jpg_file, doc_type):
     next_potential = []
 
     if doc_type == "pdb":
-        (potential, text_potential) = pdb_get_redaction_shapes_text_shapes(contours, edited_img)
+        (potential, text_potential, type1, type2, type3) = cib_get_redaction_shapes_text_shapes(contours, edited_img)
     if doc_type == "cib":
         (potential, text_potential, type1, type2, type3) = cib_get_redaction_shapes_text_shapes(contours, edited_img)
 

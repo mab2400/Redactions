@@ -14,9 +14,6 @@ def show_individual_page(jpg_file, doc_type):
 
     img = cv2.imread(jpg_file)
     redaction_module.drawRedactionRectangles(final_redactions, img)
-    print("type 1: ", len(final_type1))
-    print("type 2: ", len(final_type2))
-    print("type 3: ", len(final_type3))
     #redaction_module.putRedactions(final_redactions, img)
     redaction_module.put_type1_redactions(final_type1, img)
     redaction_module.put_type2_redactions(final_type2, img)
