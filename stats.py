@@ -50,7 +50,11 @@ def analyze(directory, pdf_file, doc_type):
 
 def test_batch(from_dir, to_dir, doc_type):
     """Iterates through all the PDBS (pdf files) in the given from directory, and moves them to the to directory when they are finished."""
-    # NOTE: Both from_dir and to_dir MUST end with a SLASH.
+
+    if from_dir[-1] != "/":
+        from_dir = from_dir + "/"
+    if to_dir[-1] != "/":
+        to_dir = to_dir + "/"
 
     os.chdir(from_dir)
     for pdf_file in os.listdir(from_dir):
