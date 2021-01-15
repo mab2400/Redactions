@@ -12,6 +12,9 @@ Prepare two directories:
 - A directory containing _only_ pdf files of the documents (the "from" directory)
 - An empty directory (the "to" directory)
 
+Install the necessary packages:
+- Run ```./install.sh``` 
+
 As the script analyzes each document, it will move the files from the "from" directory to the "to" directory. 
 
 ## Running the Script
