@@ -12,7 +12,7 @@ Prepare two directories:
 - A directory containing _only_ pdf files of the documents (the "from" directory)
 - An empty directory (the "to" directory)
 
-As the script analyzes each document, it will move the files from the "from" directory to the "to" directory. This is a safety measure; if the script gets interrupted at any point, you can pick up where you left off and avoid reanalyzing any documents. 
+As the script analyzes each document, it will move the files from the "from" directory to the "to" directory. 
 
 ## Running the Script
 
@@ -22,12 +22,12 @@ To find the redactions in a __batch__ of documents and generate a CSV file conta
 python3 stats.py <doc_type> batch <from_dir> <to_directory>
 ```
 - __doc_type__ indicates the document type of the files you inputted. For example, if your files are President's Daily Briefs, replace doc_type with pdb. If your files are Central Intelligence Bulletins, replace doc_type with cib. 
-- You should expect to see a table being generated on the screen. Note that the raw data will be stored in __output.csv__ for future use if necessary.
+- You should expect to see a table being generated on the screen. Note that the raw data will be stored in ```<from_dir>/output.csv``` for future use if necessary.
 
 To generate graphs and __analyze__ the data in the CSV file: 
 
 ```bash
-python3 stats.py analyze
+python3 stats.py <doc_type> analyze
 ```
 You should expect graphs to appear in a pop-up window. See below for an example.
 
