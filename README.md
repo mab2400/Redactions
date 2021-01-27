@@ -14,6 +14,9 @@ Prepare two directories:
 
 As the script analyzes each document, it will move the files from the "from" directory to the "to" directory. 
 
+Install the necessary packages:
+- Run ```./install.sh``` 
+
 ## Running the Script
 
 To find the redactions in a __batch__ of documents and generate a CSV file containing the data: 
