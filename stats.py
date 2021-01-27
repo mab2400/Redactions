@@ -75,4 +75,5 @@ if command == "batch":
     print("File Name             Redaction Count      Percent Text Redacted    Num Words Redacted")
     test_batch(from_dir, to_dir, doc_type)
 elif command == "analyze":
-    redaction_module.analyze_results("output.csv")
+    output_file = sys.argv[3]
+    redaction_module.analyze_results(output_file) # CHANGE THIS

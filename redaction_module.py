@@ -480,7 +480,7 @@ def image_processing(jpg_file, doc_type):
     next_potential = []
 
     if doc_type == "pdb":
-        (potential, text_potential, type1, type2, type3) = cib_get_redaction_shapes_text_shapes(contours, edited_img)
+        (potential, text_potential, type1, type2, type3) = pdb_get_redaction_shapes_text_shapes(contours, edited_img)
     if doc_type == "cib":
         (potential, text_potential, type1, type2, type3) = cib_get_redaction_shapes_text_shapes(contours, edited_img)
 

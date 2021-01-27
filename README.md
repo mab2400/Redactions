@@ -27,7 +27,7 @@ python3 stats.py <doc_type> batch <from_dir> <to_directory>
 To generate graphs and __analyze__ the data in the CSV file: 
 
 ```bash
-python3 stats.py <doc_type> analyze
+python3 stats.py <doc_type> analyze <output_filepath.csv>
 ```
 You should expect graphs to appear in a pop-up window. See below for an example.
 
