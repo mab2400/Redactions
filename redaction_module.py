@@ -268,6 +268,54 @@ def cib_get_redaction_shapes_text_shapes(contours, img):
 
     return (potential, text_potential, type1, type2, type3)
 
+def cib_get_redaction_shapes_text_shapes_page0(contours, img):
+    potential = []
+    text_potential = []
+
+    for c in contours:
+        M = cv2.moments(c)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            peri = cv2.arcLength(c, True)
+
+            if peri > 500:
+                # Detecting the redaction
+                # Compute the bounding box of the contour
+                approx = cv2.approxPolyDP(c, 0.04*peri, True)
+                (x, y, w, h) = cv2.boundingRect(approx)
+                if w*h > 6000000:
+                    # Handling the case in which the script treats the entire outline of the page as a redaction
+                    continue
+                shape = x, x+w, y, y+h
+                area = w*h
+                i = np.array(img)
+                bounding = i[y:y+h+1, x:x+w+1]
+
+                # Special case of first page!!
+                if y > 500 and y+h < 2000:
+                    continue
+
+                # Determine the percentage of white space
+                # RGB 0,0,0 is BLACK --> non_zero is WHITE
+                white = np.count_nonzero(bounding)
+                percent_white = white / bounding.size
+                if (percent_white > .80 and area < 100000) or (percent_white > .85 and area < 1000000) or (percent_white > .95 and area > 1000000):
+                    if w < 3250 and w > 20 and h < 3250 and h > 20:
+                        # Making sure it's within the margins of the image
+                        potential.append(shape)
+
+            # Detecting the text
+            if peri > 25 and peri < 150:
+                approx = cv2.approxPolyDP(c, 0.04*peri, True)
+                (x, y, w, h) = cv2.boundingRect(approx)
+                shape = x, x+w, y, y+h
+                text_potential.append(shape)
+
+    (type1, type2, type3) = get_redaction_types(potential, img)
+
+    return (potential, text_potential, type1, type2, type3)
+
 def get_redaction_types(potential, img):
     # potential is a list of shapes (x, x+w, y, y+h)
     type1 = []
@@ -445,7 +493,7 @@ def analyze_results(output_file):
     plt.ylabel("Avg Percent Text Redacted")
     plt.show(block=True)
 
-def image_processing(jpg_file, doc_type):
+def image_processing(filename, doc_type):
     """ Returns:
         1) Redaction Count
         2) Redacted Text Area
@@ -454,7 +502,13 @@ def image_processing(jpg_file, doc_type):
 
     import cv2
     import numpy as np
-    img = cv2.imread(jpg_file)
+    img = cv2.imread(filename)
+
+    # ======= Determining if first page of CIB (special case) ======
+    length = len(filename)
+    is_first_page = False
+    if filename[length-10:] == "-page0.png":
+        is_first_page = True
 
     # ======= EDITING / FILTERING THE IMAGE =======
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -471,17 +525,15 @@ def image_processing(jpg_file, doc_type):
     contours = contours[0] if len(contours) == 2 else contours[1]
     cv2.drawContours(edited_img, contours, -1, (0,0,0), 3)
 
-    #cv2.imshow("edited", edited_img)
-    #cv2.waitKey()
-    #take_screenshot(jpg_file)
-
     # Identifying the Shape
     redactions = []
     next_potential = []
 
     if doc_type == "pdb":
         (potential, text_potential, type1, type2, type3) = pdb_get_redaction_shapes_text_shapes(contours, edited_img)
-    if doc_type == "cib":
+    if doc_type == "cib" and is_first_page == True:
+        (potential, text_potential, type1, type2, type3) = cib_get_redaction_shapes_text_shapes_page0(contours, edited_img)
+    if doc_type == "cib" and is_first_page == False:
         (potential, text_potential, type1, type2, type3) = cib_get_redaction_shapes_text_shapes(contours, edited_img)
 
     final_redactions = get_intersection_over_union(potential)
