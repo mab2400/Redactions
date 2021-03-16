@@ -45,9 +45,9 @@ Analyzing the redactions on a single page of a document file and display an imag
 ## Running the Script
 
 ```bash
-python3 redactions_show.py <doc_type> <jpg_filepath>
+python3 redactions_show.py <doc_type> <png_filepath>
 ```
-- __jpg_filepath__ is the filepath for a single page of a document. It must be a JPG file.
+- __jpg_filepath__ is the filepath for a single page of a document. It must be a PNG file.
 - Running this script will calculate the number of redactions, the percent of text on the page that was redacted, as well as the estimated number of words that were redacted. It will also open a pop-up window containing an image that identifies the locations of the redactions on the page.
 - Once the pop-up window opens, press any key, which automatically takes a screenshot so you can save the analyzed image for future reference.
 
