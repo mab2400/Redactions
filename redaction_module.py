@@ -4,6 +4,7 @@ import cv2
 import time
 import math
 import imutils
+import datetime
 import pyautogui
 import statistics
 import numpy as np
@@ -105,8 +106,8 @@ def get_stats(redaction_shapes, text_shapes):
         height = abs(shape[3] - shape[2])
         area = width * height
         text_area += area
-    # I calculated that text makes up 26% of the redaction rectangle area (total_redaction_rectangle_area).
-    redacted_text_area = .26 * total_redaction_rectangle_area
+    # I calculated that text makes up 21% of the redaction rectangle area (total_redaction_rectangle_area).
+    redacted_text_area = .21 * total_redaction_rectangle_area
     estimated_text_area = text_area + redacted_text_area # This includes maps
     # Now, I will divide redacted_text_area by the (estimated) area of a single word in order to estimate
     # the number of words redacted.

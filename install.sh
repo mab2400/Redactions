@@ -9,3 +9,6 @@ pip3 install pdf2image
 pip3 install tabulate
 pip3 install matplotlib
 pip3 install scipy
+pip3 install pyPdf
+pip3 install pdf
+pip3 install PyPDF2
