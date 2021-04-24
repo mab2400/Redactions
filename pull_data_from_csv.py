@@ -2,14 +2,23 @@ import csv
 import sys
 import re, string, timeit
 
-
 """
-Reads from the csv file versions/output.csv which has two lines.
-The first line is for version #1 (2003) results.
-The second line is for version #2 (2019) results.
+output.csv looks like:
+
+second.pdf, XX, XX, XX
+first.pdf, XX, XX, XX
+
+(or order could be flipped)
 """
 
 with open(sys.argv[1]) as csv_file:
     csv_reader = csv.reader(csv_file)
-    print("%s,%s" % (csv_reader[0][3], csv_reader[1][3]))
+    val1 = 0
+    val2 = 0
+    for row in csv_reader:
+        if row[0] == "first.pdf":
+            val1 = row[3]
+        if row[0] == "second.pdf":
+            val2 = row[3]
+    print("%s,%s" % (val1,val2))
 
